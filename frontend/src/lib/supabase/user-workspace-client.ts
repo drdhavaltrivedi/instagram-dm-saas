@@ -16,9 +16,11 @@ export async function getOrCreateUserWorkspaceId(): Promise<string | null> {
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
   
   if (authError || !authUser) {
-    console.error('Not authenticated');
+    console.error('Not authenticated:', authError);
     return null;
   }
+
+  console.log('Authenticated user:', authUser.id, authUser.email);
 
   // Get user record from users table
   let { data: user, error: userError } = await supabase
@@ -26,6 +28,8 @@ export async function getOrCreateUserWorkspaceId(): Promise<string | null> {
     .select('workspace_id, workspace:workspaces(*), email, name')
     .eq('supabase_auth_id', authUser.id)
     .single();
+
+  console.log('User lookup result:', { user, userError });
 
   // If user doesn't exist, create user and workspace
   if (userError || !user) {
@@ -65,6 +69,7 @@ export async function getOrCreateUserWorkspaceId(): Promise<string | null> {
 
     if (newUserError || !newUser) {
       console.error('Error creating user:', newUserError);
+      console.error('User error details:', JSON.stringify(newUserError, null, 2));
       // Cleanup workspace if user creation fails
       await supabase.from('workspaces').delete().eq('id', workspace.id);
       return null;

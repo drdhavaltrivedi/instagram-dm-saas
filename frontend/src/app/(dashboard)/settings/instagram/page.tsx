@@ -403,10 +403,13 @@ export default function InstagramSettingsPage() {
       const workspaceId = await getOrCreateUserWorkspaceId();
 
       if (!workspaceId) {
-        setErrorMessage('Failed to get or create workspace. Please try refreshing the page.');
+        console.error('Failed to get or create workspace. Check browser console for details.');
+        setErrorMessage('Failed to get or create workspace. Please check the browser console (F12) for details and try again.');
         setIsVerifyingCookies(false);
         return;
       }
+
+      console.log('Workspace ID obtained:', workspaceId);
 
       const response = await fetch(`${BACKEND_URL}/api/instagram/cookie/connect`, {
         method: 'POST',
