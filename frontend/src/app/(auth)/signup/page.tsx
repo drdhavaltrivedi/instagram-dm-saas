@@ -6,8 +6,10 @@ import { Instagram, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle } fro
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
+import { usePostHog } from '@/hooks/use-posthog';
 
 export default function SignupPage() {
+  const { capture, identify } = usePostHog();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,15 +37,33 @@ export default function SignupPage() {
       });
 
       if (signUpError) {
+        capture('signup_failed', {
+          error: signUpError.message,
+        });
         setError(signUpError.message);
         setIsLoading(false);
         return;
       }
 
       if (data?.user?.identities?.length === 0) {
+        capture('signup_failed', {
+          error: 'Email already registered',
+        });
         setError('This email is already registered. Please sign in instead.');
         setIsLoading(false);
         return;
+      }
+
+      // Track successful signup
+      if (data?.user) {
+        identify(data.user.id, {
+          email: data.user.email,
+          name: name,
+        });
+        capture('user_signed_up', {
+          user_id: data.user.id,
+          has_name: !!name,
+        });
       }
 
       setSuccess(true);

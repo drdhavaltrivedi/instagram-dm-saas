@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { api } from '@/lib/api';
 import type { Campaign, CampaignStatus } from '@/types';
+import { usePostHog } from '@/hooks/use-posthog';
 
 interface InstagramAccount {
   id: string;
@@ -35,6 +36,7 @@ interface Contact {
 }
 
 export default function CampaignsPage() {
+  const { capture } = usePostHog();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [accounts, setAccounts] = useState<InstagramAccount[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -278,10 +280,23 @@ export default function CampaignsPage() {
         selectedContactIds: [],
         selectedLeadIds: [],
       });
+      
+      // Track campaign creation
+      capture('campaign_created', {
+        campaign_id: campaignId,
+        total_recipients: totalRecipients,
+        contacts_count: newCampaign.selectedContactIds.length,
+        leads_count: newCampaign.selectedLeadIds.length,
+        has_description: !!newCampaign.description,
+      });
+      
       fetchData();
       alert(`Campaign "${newCampaign.name}" created successfully with ${totalRecipients} recipients!`);
     } catch (error) {
       console.error('Error creating campaign:', error);
+      capture('campaign_creation_failed', {
+        error: (error as Error).message,
+      });
       alert('Failed to create campaign: ' + (error as Error).message);
     }
   };
@@ -301,6 +316,15 @@ export default function CampaignsPage() {
         .from('campaigns')
         .update(updates)
         .eq('id', campaignId);
+
+      // Track status update
+      const campaign = campaigns.find(c => c.id === campaignId);
+      capture('campaign_status_updated', {
+        campaign_id: campaignId,
+        old_status: campaign?.status,
+        new_status: newStatus,
+        total_recipients: campaign?.totalRecipients || 0,
+      });
 
       // If starting campaign, trigger processing
       if (newStatus === 'RUNNING') {

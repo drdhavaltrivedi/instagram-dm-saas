@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { usePostHog } from '@/hooks/use-posthog';
 
 export default function LoginPage() {
+  const { capture, identify } = usePostHog();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,6 +35,10 @@ export default function LoginPage() {
         });
 
         if (error) {
+          capture('login_failed', {
+            method: 'password',
+            error: error.message,
+          });
           if (error.message.includes('Invalid login credentials')) {
             setError('Invalid email or password. Please try again.');
           } else {
@@ -40,6 +46,18 @@ export default function LoginPage() {
           }
           setIsLoading(false);
           return;
+        }
+
+        // Track successful login
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          identify(user.id, {
+            email: user.email,
+          });
+          capture('user_logged_in', {
+            method: 'password',
+            user_id: user.id,
+          });
         }
 
         router.push('/inbox');

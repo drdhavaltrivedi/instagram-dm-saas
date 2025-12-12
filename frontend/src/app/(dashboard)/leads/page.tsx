@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { usePostHog } from '@/hooks/use-posthog';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
@@ -137,6 +138,7 @@ function matchKeywordsInBio(bio: string, keywords: string[]): string[] {
 }
 
 export default function LeadsPage() {
+  const { capture } = usePostHog();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [accounts, setAccounts] = useState<InstagramAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<InstagramAccount | null>(null);
@@ -383,6 +385,15 @@ export default function LeadsPage() {
         setSearchResults(results);
         setSearchLimit(currentLimit);
         setSearchError(''); // Clear any previous errors
+        
+        // Track lead search
+        capture('lead_search_performed', {
+          search_type: type,
+          query: query,
+          results_count: results.length,
+          has_preset: !!selectedPreset,
+          has_custom_keywords: !!bioKeywords,
+        });
         
         if (results.length === 0) {
           setSearchError('No users found. Try a different keyword or check your Instagram session.');

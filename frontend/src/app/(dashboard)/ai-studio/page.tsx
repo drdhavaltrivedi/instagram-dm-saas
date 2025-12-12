@@ -17,6 +17,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/header';
+import { usePostHog } from '@/hooks/use-posthog';
 
 interface AIAutomation {
   id: string;
@@ -55,6 +56,7 @@ const templates = [
 ];
 
 export default function AIStudioPage() {
+  const { capture } = usePostHog();
   const [automations, setAutomations] = useState<AIAutomation[]>([]);
   const [accounts, setAccounts] = useState<InstagramAccount[]>([]);
   const [selectedAutomation, setSelectedAutomation] = useState<string | null>(null);
@@ -170,12 +172,22 @@ export default function AIStudioPage() {
         return;
       }
 
+      // Track automation creation
+      capture('automation_created', {
+        automation_id: data.id,
+        trigger_type: newAutomation.trigger,
+        has_description: !!newAutomation.description,
+      });
+
       setShowCreateModal(false);
       setNewAutomation({ name: '', description: '', trigger: 'New follower', accountId: '' });
       fetchData();
       alert('Automation created successfully!');
     } catch (error) {
       console.error('Error creating automation:', error);
+      capture('automation_creation_failed', {
+        error: (error as Error).message,
+      });
       alert('Failed to create automation: ' + (error as Error).message);
     }
   };
@@ -193,6 +205,12 @@ export default function AIStudioPage() {
         alert('Failed to update automation: ' + error.message);
         return;
       }
+      
+      // Track automation status toggle
+      capture('automation_status_toggled', {
+        automation_id: id,
+        new_status: currentStatus !== 'active' ? 'active' : 'inactive',
+      });
       
       fetchData();
     } catch (error) {

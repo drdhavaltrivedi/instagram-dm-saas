@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import type { InstagramAccount } from '@/types';
+import { usePostHog } from '@/hooks/use-posthog';
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID;
 const META_OAUTH_REDIRECT_URI = process.env.NEXT_PUBLIC_META_OAUTH_REDIRECT_URI || `${typeof window !== 'undefined' ? window.location.origin : ''}/api/instagram/callback`;
@@ -39,6 +40,7 @@ interface InstagramCookies {
 }
 
 export default function InstagramSettingsPage() {
+  const { capture } = usePostHog();
   const [accounts, setAccounts] = useState<InstagramAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -390,6 +392,13 @@ export default function InstagramSettingsPage() {
       const data = await response.json();
 
       if (data.success) {
+        // Track Instagram account connection
+        capture('instagram_account_connected', {
+          method: 'cookie',
+          username: data.account.username,
+          is_new_account: !existingAccount,
+        });
+
         // Also save to Supabase for UI
         const { data: savedAccount, error } = await supabase
           .from('instagram_accounts')
