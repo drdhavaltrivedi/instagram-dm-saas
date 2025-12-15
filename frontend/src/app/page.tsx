@@ -394,6 +394,7 @@ export default function HomePage() {
               <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
               <Link href="/support" className="hover:text-foreground transition-colors">Support</Link>
+              <Link href="/docs" className="hover:text-foreground transition-colors">Docs</Link>
             </div>
             <p className="text-sm text-foreground-muted">
               © 2024 BulkDM. All rights reserved.
