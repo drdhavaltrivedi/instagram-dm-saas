@@ -1,6 +1,9 @@
 # Use Node.js 20
 FROM node:20-alpine
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl1.1-compat
+
 # Set working directory to backend
 WORKDIR /app/backend
 
@@ -24,6 +27,5 @@ RUN npm run build
 EXPOSE 3001
 
 # Start the application
-# Use shell form to ensure proper execution
-CMD npm run start:prod
+CMD ["npm", "run", "start:prod"]
 
