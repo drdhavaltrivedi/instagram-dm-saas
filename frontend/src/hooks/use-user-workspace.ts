@@ -42,7 +42,7 @@ export function useUserWorkspace() {
           return;
         }
 
-        const workspaceData = user.workspace as Workspace | null;
+        const workspaceData = (user.workspace as unknown) as Workspace | null;
         setWorkspace(workspaceData);
         setWorkspaceId(user.workspace_id);
         setIsLoading(false);

@@ -552,11 +552,11 @@ export default function LeadsPage() {
         await supabase.from('leads').upsert({
           workspace_id: workspaceId,
           instagram_account_id: selectedAccount.id,
-          ig_user_id: profile.pk || user.pk,
-          ig_username: profile.username || user.username,
-          full_name: profile.fullName || user.fullName,
+          ig_user_id: profile.pk || userProfile.pk,
+          ig_username: profile.username || userProfile.username,
+          full_name: profile.fullName || userProfile.fullName,
           bio: profile.bio,
-          profile_pic_url: profile.profilePicUrl || user.profilePicUrl,
+          profile_pic_url: profile.profilePicUrl || userProfile.profilePicUrl,
           follower_count: profile.followerCount,
           following_count: profile.followingCount,
           post_count: profile.postCount,
@@ -576,7 +576,7 @@ export default function LeadsPage() {
         // Small delay to avoid rate limits
         await new Promise(r => setTimeout(r, 500));
       } catch (error) {
-        console.error(`Failed to add lead ${user.username}:`, error);
+        console.error(`Failed to add lead ${userProfile.username}:`, error);
       }
     }
 

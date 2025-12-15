@@ -55,7 +55,7 @@ export function useWorkspace() {
 
       if (!user || !user.workspace) return { data: null, error: null };
       
-      return { data: user.workspace as Tables['workspaces']['Row'], error: null };
+      return { data: user.workspace as unknown as Tables['workspaces']['Row'], error: null };
     },
     []
   );

@@ -77,7 +77,7 @@ export async function getUserWorkspace(): Promise<Workspace | null> {
     return workspace;
   }
 
-  return (user.workspace as Workspace) || null;
+  return ((user.workspace as unknown) as Workspace) || null;
 }
 
 /**
