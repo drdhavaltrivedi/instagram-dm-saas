@@ -6,12 +6,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   // Enable CORS for frontend
-  const allowedOrigins = [
+  const allowedOrigins: string[] = [
     process.env.FRONTEND_URL,
     'http://localhost:3000',
     'https://bulkdm-saas.netlify.app',
     'https://dmflow-saas.netlify.app', // Legacy URL
-  ].filter(Boolean);
+  ].filter((origin): origin is string => Boolean(origin));
   
   app.enableCors({
     origin: allowedOrigins.length > 0 ? allowedOrigins : true,
