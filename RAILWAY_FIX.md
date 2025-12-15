@@ -4,7 +4,31 @@
 
 This happens when Railway doesn't detect Node.js properly. Here's how to fix it:
 
-## ✅ Solution 1: Verify Root Directory (MOST IMPORTANT)
+## ✅ Solution 1: Use Root Directory with Dockerfile (RECOMMENDED)
+
+I've created a `Dockerfile` in the root that properly builds from the `backend` directory.
+
+**In Railway:**
+1. Go to **Settings** → **Build & Deploy**
+2. Set **Root Directory**: Leave empty (root) OR set to `.` (root)
+3. Railway will automatically detect and use the `Dockerfile`
+4. **Build Command**: Leave empty
+5. **Start Command**: Leave empty
+6. Redeploy
+
+## ✅ Solution 2: Use Root Directory with Nixpacks
+
+I've created a `nixpacks.toml` in the root that properly configures the build.
+
+**In Railway:**
+1. Go to **Settings** → **Build & Deploy**
+2. Set **Root Directory**: Leave empty (root) OR set to `.` (root)
+3. Railway will automatically detect and use `nixpacks.toml`
+4. **Build Command**: Leave empty
+5. **Start Command**: Leave empty
+6. Redeploy
+
+## ✅ Solution 3: Verify Root Directory (ALTERNATIVE)
 
 1. **Go to Railway Dashboard**
    - Open your service
