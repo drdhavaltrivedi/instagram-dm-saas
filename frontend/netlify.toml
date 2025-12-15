@@ -7,19 +7,6 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Explicit redirects for static files (fallback if plugin doesn't handle it)
-[[redirects]]
-  from = "/_next/static/*"
-  to = "/.netlify/builders/_next/static/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/_next/image"
-  to = "/.netlify/builders/_next/image"
-  status = 200
-  force = true
-
 # Headers for security
 [[headers]]
   for = "/*"
