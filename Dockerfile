@@ -1,8 +1,11 @@
-# Use Node.js 20
-FROM node:20-alpine
+# Use Node.js 20 (Debian-based for better Prisma compatibility)
+FROM node:20-slim
 
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl1.1-compat
+# Install OpenSSL and other dependencies for Prisma
+RUN apt-get update && apt-get install -y \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory to backend
 WORKDIR /app/backend
