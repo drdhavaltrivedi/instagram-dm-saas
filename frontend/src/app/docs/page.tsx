@@ -1,18 +1,43 @@
+'use client';
+
 import Link from 'next/link';
 import { Instagram, ArrowLeft, Book, MessageSquare, Send, Target, BarChart3, Bot, Settings, HelpCircle, CheckCircle, AlertCircle, ArrowRight, Search, Users, Zap, Shield, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
 
 export default function DocsPage() {
+  const [activeSection, setActiveSection] = useState('getting-started');
+
   const quickLinks = [
-    { icon: MessageSquare, title: 'Getting Started', href: '#getting-started' },
-    { icon: Settings, title: 'Connect Instagram', href: '#connect-instagram' },
-    { icon: MessageSquare, title: 'Manage Inbox', href: '#manage-inbox' },
-    { icon: Send, title: 'Create Campaigns', href: '#create-campaigns' },
-    { icon: Bot, title: 'AI Automations', href: '#ai-automations' },
-    { icon: Target, title: 'Find Leads', href: '#find-leads' },
-    { icon: BarChart3, title: 'Analytics', href: '#analytics' },
-    { icon: HelpCircle, title: 'Troubleshooting', href: '#troubleshooting' },
+    { icon: MessageSquare, title: 'Getting Started', href: '#getting-started', id: 'getting-started' },
+    { icon: Settings, title: 'Connect Instagram', href: '#connect-instagram', id: 'connect-instagram' },
+    { icon: MessageSquare, title: 'Manage Inbox', href: '#manage-inbox', id: 'manage-inbox' },
+    { icon: Send, title: 'Create Campaigns', href: '#create-campaigns', id: 'create-campaigns' },
+    { icon: Bot, title: 'AI Automations', href: '#ai-automations', id: 'ai-automations' },
+    { icon: Target, title: 'Find Leads', href: '#find-leads', id: 'find-leads' },
+    { icon: BarChart3, title: 'Analytics', href: '#analytics', id: 'analytics' },
+    { icon: HelpCircle, title: 'Troubleshooting', href: '#troubleshooting', id: 'troubleshooting' },
   ];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = quickLinks.map(link => link.id);
+      const scrollPosition = window.scrollY + 150; // Offset for header
+
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const section = document.getElementById(sections[i]);
+        if (section && section.offsetTop <= scrollPosition) {
+          setActiveSection(sections[i]);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check on mount
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,16 +82,23 @@ export default function DocsPage() {
                   <h2 className="font-semibold text-foreground">Documentation</h2>
                 </div>
                 <nav className="space-y-2">
-                  {quickLinks.map((link, index) => (
-                    <a
-                      key={index}
-                      href={link.href}
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-background-secondary transition-colors text-sm text-foreground-muted hover:text-foreground"
-                    >
-                      <link.icon className="h-4 w-4" />
-                      {link.title}
-                    </a>
-                  ))}
+                  {quickLinks.map((link, index) => {
+                    const isActive = activeSection === link.id;
+                    return (
+                      <a
+                        key={index}
+                        href={link.href}
+                        className={`flex items-center gap-3 p-3 rounded-lg transition-colors text-sm ${
+                          isActive
+                            ? 'bg-accent/10 text-accent border border-accent/20'
+                            : 'text-foreground-muted hover:text-foreground hover:bg-background-secondary'
+                        }`}
+                      >
+                        <link.icon className={`h-4 w-4 ${isActive ? 'text-accent' : ''}`} />
+                        {link.title}
+                      </a>
+                    );
+                  })}
                 </nav>
               </div>
             </div>
@@ -662,4 +694,3 @@ export default function DocsPage() {
     </div>
   );
 }
-

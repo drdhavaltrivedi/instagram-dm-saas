@@ -10,3 +10,4 @@ CREATE INDEX IF NOT EXISTS instagram_accounts_cookies_idx ON instagram_accounts(
 -- Add comment
 COMMENT ON COLUMN instagram_accounts.cookies IS 'Encrypted Instagram session cookies stored as JSONB for persistent authentication';
 
+
