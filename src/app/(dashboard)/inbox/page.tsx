@@ -464,15 +464,6 @@ export default function InboxPage() {
             .single();
 
           if (conversation) {
-            // Check if this is first message
-            const { data: existingMsgs } = await supabase
-              .from('messages')
-              .select('id')
-              .eq('conversation_id', conversation.id)
-              .limit(1);
-            
-            const isFirstMessage = !existingMsgs || existingMsgs.length === 0;
-            
             // Insert message
             await supabase
               .from('messages')
@@ -483,21 +474,7 @@ export default function InboxPage() {
                 status: 'SENT',
                 sent_at: new Date().toISOString(),
                 ig_message_id: result.itemId,
-                is_first_message: isFirstMessage,
-                is_pending_approval: isFirstMessage,
-                approval_status: isFirstMessage ? 'pending' : 'approved',
               });
-            
-            // Update conversation tracking
-            if (isFirstMessage) {
-              await supabase
-                .from('conversations')
-                .update({
-                  first_message_sent_at: new Date().toISOString(),
-                  is_request_pending: true,
-                })
-                .eq('id', conversation.id);
-            }
           }
         }
 
@@ -508,6 +485,54 @@ export default function InboxPage() {
         // Refresh conversations and accounts (to update daily limit)
         await fetchConversations();
         await fetchAccounts();
+        
+        // Select the newly created conversation if it exists
+        if (contact) {
+          // Wait a moment for the conversation to be in the list
+          setTimeout(async () => {
+            const { data: updatedConversations } = await supabase
+              .from('conversations')
+              .select(`
+                *,
+                contact:contacts(*),
+                instagram_account:instagram_accounts(id, ig_username)
+              `)
+              .eq('instagram_account_id', selectedAccount.id)
+              .eq('contact_id', contact.id)
+              .order('last_message_at', { ascending: false })
+              .limit(1)
+              .single();
+            
+            if (updatedConversations) {
+              // Transform to match Conversation type
+              const transformedConv: Conversation = {
+                id: updatedConversations.id,
+                status: updatedConversations.status,
+                lastMessageAt: updatedConversations.last_message_at,
+                unreadCount: updatedConversations.unread_count,
+                isAutomationPaused: updatedConversations.is_automation_paused,
+                contact: {
+                  id: updatedConversations.contact.id,
+                  igUserId: updatedConversations.contact.ig_user_id,
+                  igUsername: updatedConversations.contact.ig_username,
+                  name: updatedConversations.contact.name,
+                  profilePictureUrl: updatedConversations.contact.profile_picture_url,
+                  followerCount: updatedConversations.contact.follower_count,
+                  isVerified: updatedConversations.contact.is_verified,
+                  tags: updatedConversations.contact.tags || [],
+                  notes: updatedConversations.contact.notes,
+                },
+                instagramAccount: {
+                  id: updatedConversations.instagram_account.id,
+                  igUsername: updatedConversations.instagram_account.ig_username,
+                },
+              };
+              
+              setSelectedConversation(transformedConv);
+              await fetchMessages(transformedConv.id);
+            }
+          }, 500);
+        }
         
         // Show success
         toast.success('Message sent!', {
