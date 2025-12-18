@@ -25,33 +25,28 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
   },
   // Webpack configuration for Supabase and path aliases
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // Get the absolute path to src directory
-    // Use process.cwd() which is reliable in Vercel builds
     const projectRoot = process.cwd();
     const srcPath = path.resolve(projectRoot, 'src');
     
-    // CRITICAL: Set alias BEFORE any other resolve configuration
-    // This ensures webpack uses the alias for module resolution
-    config.resolve = config.resolve || {};
-    config.resolve.alias = {
-      ...(config.resolve.alias || {}),
-      '@': srcPath,
-    };
-    
-    // Also add src to modules for additional resolution paths
-    config.resolve.modules = config.resolve.modules || [];
-    if (!config.resolve.modules.includes(srcPath)) {
-      config.resolve.modules.unshift(srcPath); // Add to beginning for priority
+    // Set alias - must be absolute path
+    // Next.js should handle this automatically via tsconfig, but we ensure it here
+    if (!config.resolve) {
+      config.resolve = {};
+    }
+    if (!config.resolve.alias) {
+      config.resolve.alias = {};
     }
     
-    // Ensure node_modules is still in modules
-    const nodeModulesPath = path.resolve(projectRoot, 'node_modules');
-    if (!config.resolve.modules.includes(nodeModulesPath)) {
-      config.resolve.modules.push(nodeModulesPath);
-    }
+    // Set the @ alias to point to src directory
+    config.resolve.alias['@'] = srcPath;
+    
+    // Ensure symlinks are resolved
+    config.resolve.symlinks = true;
 
-    if (!isServer) {
+    // Client-side fallbacks
+    if (config.resolve.fallback) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -59,6 +54,7 @@ const nextConfig = {
         tls: false,
       };
     }
+    
     return config;
   },
 };
