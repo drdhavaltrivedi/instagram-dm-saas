@@ -10,7 +10,7 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
-[![NestJS](https://img.shields.io/badge/NestJS-10-red?style=flat-square&logo=nestjs)](https://nestjs.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-ORM-blue?style=flat-square&logo=prisma)](https://www.prisma.io/)
 [![Supabase](https://img.shields.io/badge/Supabase-Database-green?style=flat-square&logo=supabase)](https://supabase.com/)
 
 </div>
@@ -68,27 +68,28 @@
 
 ## 🛠 Tech Stack
 
-### Backend
-- **Framework**: NestJS 10
-- **Database**: PostgreSQL (via Supabase)
+### Full-Stack Framework
+- **Framework**: Next.js 14 (App Router) - Monorepo structure
+- **Language**: TypeScript
+- **API Routes**: Next.js API Routes (serverless functions)
+- **Database**: PostgreSQL (via Supabase or Vercel Postgres)
 - **ORM**: Prisma
 - **Authentication**: Supabase Auth
-- **Browser Automation**: Puppeteer
-- **API**: RESTful API with TypeScript
-
-### Frontend
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **UI Components**: Custom component library
 - **State Management**: React Hooks + Zustand
 - **Analytics**: PostHog
 
+### Backend Services
+- **Browser Automation**: Puppeteer (for Instagram login)
+- **Instagram API**: instagram-private-api
+- **Session Management**: Cookie-based authentication
+- **Encryption**: AES-256-CBC for secure cookie storage
+
 ### Infrastructure
-- **Database**: Supabase (PostgreSQL)
+- **Database**: Supabase (PostgreSQL) or Vercel Postgres
 - **Authentication**: Supabase Auth
-- **Hosting**: Netlify (Frontend)
-- **Deployment**: Netlify, Railway, or Render
+- **Hosting**: Vercel (recommended)
+- **Deployment**: Vercel (automatic from GitHub)
 
 ### Extension
 - **Platform**: Chrome Extension (Manifest V3)
@@ -112,27 +113,25 @@ git clone https://github.com/your-username/instagram-dm-saas.git
 cd instagram-dm-saas
 
 # 2. Install dependencies
-cd backend && npm install
-cd ../frontend && npm install
+npm install
 
-# 3. Set up environment variables (see Configuration section)
+# 3. Set up environment variables
+cp VERCEL_ENV_TEMPLATE.txt .env.local
+# Edit .env.local with your credentials (see Configuration section)
 
-# 4. Run database migrations
-cd backend && npx prisma migrate dev
+# 4. Generate Prisma Client
+npm run prisma:generate
 
-# 5. Start development servers
-# Terminal 1 - Backend
-cd backend && npm run start:dev
+# 5. Run database migrations
+npm run prisma:migrate:dev
 
-# Terminal 2 - Frontend
-cd frontend && npm run dev
-
-# 6. Load Chrome Extension
-# Extract bulkdm-extension-local-v1.0.1.zip
-# Go to chrome://extensions/ → Enable Developer Mode → Load Unpacked
+# 6. Start development server
+npm run dev
 ```
 
 Visit `http://localhost:3000` and start using BulkDM!
+
+> ⚠️ **Important**: Make sure to set `DATABASE_URL` in your `.env.local` file. Without it, the application will fail with Prisma errors.
 
 ## 📦 Installation
 
@@ -145,41 +144,33 @@ git clone https://github.com/your-username/instagram-dm-saas.git
 cd instagram-dm-saas
 ```
 
-#### 2. Backend Setup
+#### 2. Install Dependencies
 
 ```bash
-cd backend
 npm install
-
-# Copy environment template
-cp .env.example .env
-# Edit .env with your credentials
 ```
 
-#### 3. Frontend Setup
+#### 3. Environment Setup
 
 ```bash
-cd ../frontend
-npm install
-
 # Copy environment template
-cp .env.example .env.local
+cp VERCEL_ENV_TEMPLATE.txt .env.local
+
 # Edit .env.local with your credentials
+# See Configuration section below for required variables
 ```
 
 #### 4. Database Setup
 
 ```bash
-cd ../backend
-
 # Generate Prisma Client
-npx prisma generate
+npm run prisma:generate
 
 # Run migrations
-npx prisma migrate dev
+npm run prisma:migrate:dev
 
 # (Optional) Open Prisma Studio to view data
-npx prisma studio
+npm run prisma:studio
 ```
 
 #### 5. Chrome Extension Setup
@@ -201,41 +192,62 @@ cd extension
 
 ## ⚙️ Configuration
 
-### Backend Environment Variables
+### Environment Variables
 
-Create `backend/.env`:
+Create `.env.local` in the root directory:
 
 ```env
-# Database
+# Database (REQUIRED - Without this, the app will fail!)
+# Get from: Vercel Postgres, Supabase, or other PostgreSQL provider
 DATABASE_URL="postgresql://user:password@host:5432/database"
 DIRECT_URL="postgresql://user:password@host:5432/database"
 
-# Security
-JWT_SECRET="your-super-secret-jwt-key-min-32-chars"
-ENCRYPTION_KEY="your-32-character-encryption-key"
-
-# Instagram API (Optional - for OAuth)
-META_APP_ID="your-meta-app-id"
-META_APP_SECRET="your-meta-app-secret"
-META_OAUTH_REDIRECT_URI="http://localhost:3001/api/instagram/oauth/callback"
-```
-
-### Frontend Environment Variables
-
-Create `frontend/.env.local`:
-
-```env
-# Supabase
+# Supabase (REQUIRED)
+# Get from: Supabase Dashboard → Settings → API
 NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-anon-key"
 
-# Backend API
-NEXT_PUBLIC_BACKEND_URL="http://localhost:3001"
+# Backend URL (Set after first deployment)
+# For local: http://localhost:3000
+# For production: https://your-project.vercel.app
+NEXT_PUBLIC_BACKEND_URL="http://localhost:3000"
+
+# Security (REQUIRED - Generate secure values!)
+# Generate with: openssl rand -base64 32
+JWT_SECRET="your-generated-secret-min-32-characters"
+ENCRYPTION_KEY="your-generated-key-32-characters"
+
+# Instagram OAuth (Optional)
+META_APP_ID="your-meta-app-id"
+META_APP_SECRET="your-meta-app-secret"
+META_OAUTH_REDIRECT_URI="http://localhost:3000/api/instagram/callback"
 
 # Analytics (Optional)
 NEXT_PUBLIC_POSTHOG_KEY="your-posthog-key"
-NEXT_PUBLIC_POSTHOG_HOST="https://app.posthog.com"
+NEXT_PUBLIC_POSTHOG_HOST="https://us.i.posthog.com"
 ```
+
+> ⚠️ **CRITICAL**: The `DATABASE_URL` environment variable is **required** and must be in the correct format:
+> 
+> **Correct Format** (must start with `postgresql://` or `postgres://`):
+> ```
+> DATABASE_URL="postgresql://user:password@host:5432/database"
+> ```
+> 
+> **Common Errors**:
+> - ❌ Missing protocol: `user:password@host:5432/database` → ✅ Add `postgresql://` at the start
+> - ❌ Extra spaces: ` postgresql://...` → ✅ Remove spaces before/after
+> - ❌ Wrong format: `postgresql:user:password@host` → ✅ Use `postgresql://user:password@host:port/db`
+> 
+> If you see errors like:
+> ```
+> PrismaClientInitializationError: the URL must start with the protocol `postgresql://`
+> ```
+> Check that your `DATABASE_URL` starts with `postgresql://` or `postgres://` and has no extra spaces.
+> 
+> Make sure to set this in:
+> - Local development: `.env.local` file
+> - Vercel deployment: Project Settings → Environment Variables (no quotes needed in Vercel)
 
 ### Supabase Setup
 
@@ -322,30 +334,24 @@ BulkDM offers three methods to connect Instagram accounts:
 ### Running Locally
 
 ```bash
-# Backend (Terminal 1)
-cd backend
-npm run start:dev
-# Runs on http://localhost:3001
-
-# Frontend (Terminal 2)
-cd frontend
+# Start development server (runs both frontend and API routes)
 npm run dev
+
 # Runs on http://localhost:3000
+# API routes available at http://localhost:3000/api/*
 ```
 
 ### Database Commands
 
 ```bash
-cd backend
-
 # Generate Prisma Client
-npx prisma generate
+npm run prisma:generate
 
 # Create new migration
-npx prisma migrate dev --name migration_name
+npm run prisma:migrate:dev -- --name migration_name
 
 # View database in browser
-npx prisma studio
+npm run prisma:studio
 
 # Reset database (⚠️ deletes all data)
 npx prisma migrate reset
@@ -370,70 +376,84 @@ cd extension
 
 ```
 instagram-dm-saas/
-├── backend/
-│   ├── src/
-│   │   ├── instagram/        # Instagram API integration
-│   │   │   ├── instagram-browser.service.ts
-│   │   │   ├── instagram-cookie.service.ts
-│   │   │   └── instagram-cookie.controller.ts
-│   │   ├── auth/             # Authentication guards
-│   │   └── main.ts           # App entry point
-│   └── prisma/
-│       ├── schema.prisma     # Database schema
-│       └── migrations/       # Database migrations
-├── frontend/
-│   ├── src/
-│   │   ├── app/              # Next.js pages
-│   │   │   ├── (auth)/       # Auth pages (login, signup)
-│   │   │   ├── (dashboard)/  # Dashboard pages
-│   │   │   ├── docs/         # Documentation
-│   │   │   ├── privacy/      # Privacy policy
-│   │   │   ├── terms/        # Terms of service
-│   │   │   └── support/      # Support page
-│   │   ├── components/       # React components
-│   │   │   ├── ui/           # UI components
-│   │   │   ├── layout/       # Layout components
-│   │   │   └── inbox/        # Inbox components
-│   │   └── lib/              # Utilities
-│   │       ├── supabase/     # Supabase helpers
-│   │       └── utils.ts      # Common utilities
-│   └── public/               # Static assets
-└── extension/
-    ├── popup.local.js        # Local version
-    ├── popup.prod.js         # Production version
-    ├── background.local.js   # Local background
-    ├── background.prod.js    # Production background
-    ├── manifest.local.json   # Local manifest
-    ├── manifest.prod.json    # Production manifest
-    └── build.sh              # Build script
+├── src/
+│   ├── app/                  # Next.js App Router
+│   │   ├── api/              # API routes (backend)
+│   │   │   ├── instagram/    # Instagram API endpoints
+│   │   │   ├── campaigns/     # Campaign API endpoints
+│   │   │   └── notifications/# Notification API endpoints
+│   │   ├── (auth)/           # Auth pages (login, signup)
+│   │   ├── (dashboard)/      # Dashboard pages
+│   │   ├── docs/             # Documentation
+│   │   ├── privacy/          # Privacy policy
+│   │   ├── terms/            # Terms of service
+│   │   └── support/          # Support page
+│   ├── components/           # React components
+│   │   ├── ui/               # UI components
+│   │   ├── layout/           # Layout components
+│   │   └── inbox/            # Inbox components
+│   ├── lib/                  # Utilities and services
+│   │   ├── server/           # Server-side services
+│   │   │   ├── instagram/    # Instagram services
+│   │   │   ├── campaigns/     # Campaign services
+│   │   │   ├── notifications/# Notification services
+│   │   │   ├── prisma/       # Prisma client
+│   │   │   └── auth.ts       # Auth helpers
+│   │   ├── supabase/         # Supabase helpers
+│   │   └── api.ts            # API client
+│   ├── hooks/                # React hooks
+│   └── types/                # TypeScript types
+├── prisma/
+│   ├── schema.prisma         # Database schema
+│   └── migrations/           # Database migrations
+├── public/                   # Static assets
+├── extension/                # Chrome extension
+│   ├── background.js         # Background script
+│   ├── popup.html/js         # Extension popup
+│   ├── manifest.json         # Extension manifest
+│   └── build.sh              # Build script
+├── package.json              # Dependencies
+└── vercel.json               # Vercel configuration
 ```
 
 ## 🌐 Deployment
 
-### Frontend Deployment (Netlify)
+### Vercel Deployment (Recommended)
 
-See detailed guide: [`NETLIFY_DEPLOYMENT.md`](./NETLIFY_DEPLOYMENT.md)
+See detailed guide: [`VERCEL_DEPLOYMENT_GUIDE.md`](./VERCEL_DEPLOYMENT_GUIDE.md)
 
 **Quick Deploy:**
-1. Connect GitHub repository to Netlify
-2. Set build command: `cd frontend && npm run build`
-3. Set publish directory: `frontend/.next`
-4. Add environment variables
-5. Deploy!
+1. **Connect Repository**:
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "Add New Project"
+   - Import your GitHub repository
 
-### Backend Deployment
+2. **Configure Project**:
+   - Framework Preset: **Next.js**
+   - Root Directory: `.` (root)
+   - Build Command: `npm run build` (auto-detected)
+   - Output Directory: `.next` (auto-detected)
 
-Deploy to **Railway**, **Render**, or **Heroku**:
+3. **Set Environment Variables** (CRITICAL):
+   - Go to Project Settings → Environment Variables
+   - Add all variables from `VERCEL_ENV_TEMPLATE.txt`
+   - **⚠️ IMPORTANT**: Make sure `DATABASE_URL` is set, otherwise you'll get 500 errors!
+   - Set for: Production, Preview, and Development
 
-```bash
-# Railway
-railway login
-railway init
-railway up
+4. **Deploy**:
+   - Click "Deploy"
+   - Vercel will automatically deploy on every push to main branch
 
-# Render
-# Connect GitHub repo and configure build settings
-```
+**Required Environment Variables:**
+- `DATABASE_URL` - PostgreSQL connection string (REQUIRED)
+- `DIRECT_URL` - Direct database connection (usually same as DATABASE_URL)
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon key
+- `JWT_SECRET` - Generate with: `openssl rand -base64 32`
+- `ENCRYPTION_KEY` - Generate with: `openssl rand -base64 32`
+- `NEXT_PUBLIC_BACKEND_URL` - Your Vercel URL (set after first deployment)
+
+> ⚠️ **Troubleshooting**: If you see `PrismaClientInitializationError: Environment variable not found: DATABASE_URL`, make sure to add `DATABASE_URL` in Vercel Project Settings → Environment Variables.
 
 ### Extension Deployment
 
@@ -465,11 +485,11 @@ See detailed guide: [`EXTENSION_DEPLOYMENT.md`](./EXTENSION_DEPLOYMENT.md)
 
 ## 📚 Documentation
 
-- 📖 **[Full Documentation](./frontend/src/app/docs/page.tsx)** - Complete user guide
-- 🔧 **[API Documentation](./backend/README.md)** - Backend API reference
-- 🚀 **[Deployment Guide](./NETLIFY_DEPLOYMENT.md)** - Deployment instructions
+- 📖 **[Full Documentation](./src/app/docs/page.tsx)** - Complete user guide (available at `/docs`)
+- 🚀 **[Vercel Deployment Guide](./VERCEL_DEPLOYMENT_GUIDE.md)** - Detailed Vercel deployment instructions
 - 🔌 **[Extension Guide](./extension/README.md)** - Chrome extension setup
 - 📧 **[Email Templates](./SUPABASE_EMAIL_TEMPLATES.md)** - Supabase email customization
+- 🔐 **[Security Notes](./SECURITY_NOTES.md)** - Security information and vulnerabilities
 
 ## 🆘 Support
 
@@ -485,6 +505,10 @@ See detailed guide: [`EXTENSION_DEPLOYMENT.md`](./EXTENSION_DEPLOYMENT.md)
 - **Account disconnects**: Cookies expire - use Direct Login for auto-reconnection
 - **Campaigns not sending**: Check account connection and rate limits
 - **Extension not working**: Make sure you're using the correct version (local vs prod)
+- **500 errors on Vercel**: Check that `DATABASE_URL` is set in Vercel Environment Variables
+- **Prisma errors**: 
+  - Error: "Environment variable not found: DATABASE_URL" → Set `DATABASE_URL` in Vercel
+  - Error: "the URL must start with the protocol `postgresql://`" → Make sure `DATABASE_URL` starts with `postgresql://` or `postgres://` (no extra spaces, no quotes in Vercel)
 
 ## 🤝 Contributing
 

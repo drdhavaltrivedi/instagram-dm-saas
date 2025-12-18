@@ -39,6 +39,12 @@ model User {
   supabaseAuthId String?   @unique @map("supabase_auth_id") // Links to Supabase auth.users.id
   passwordHash    String?   @map("password_hash")
   name            String?
+  firstName       String?   @map("first_name")
+  lastName        String?   @map("last_name")
+  phone           String?
+  timezone        String?   @default("America/New_York")
+  bio             String?
+  avatarUrl       String?   @map("avatar_url")
   emailVerified   DateTime? @map("email_verified")
   magicToken      String?   @map("magic_token")
   magicTokenExp   DateTime? @map("magic_token_exp")
@@ -316,7 +322,7 @@ model NotificationPreference {
   type      NotificationType
   email     Boolean          @default(true)
   push      Boolean          @default(false)
-  inApp     Boolean          @default(true)
+  inApp     Boolean          @default(true) @map("in_app")
   createdAt DateTime         @default(now()) @map("created_at")
   updatedAt DateTime         @updatedAt @map("updated_at")
 

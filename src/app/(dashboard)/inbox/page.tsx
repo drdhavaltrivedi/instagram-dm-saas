@@ -510,40 +510,71 @@ export default function InboxPage() {
   };
 
   // Sync Instagram inbox
-  const handleSyncInbox = async () => {
+  const handleSyncInbox = async (showAlert = true) => {
     if (!selectedAccount) {
-      alert('Please select an Instagram account first');
+      if (showAlert) alert('Please select an Instagram account first');
       return;
     }
 
     const cookies = getCookies();
     if (!cookies) {
-      alert('Please reconnect your Instagram account');
+      if (showAlert) alert('Please reconnect your Instagram account');
       return;
     }
 
     setIsSyncing(true);
     try {
+      // Get workspace ID
+      const supabase = createClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        if (showAlert) alert('Not authenticated');
+        return;
+      }
+
+      const { data: user } = await supabase
+        .from('users')
+        .select('workspace_id')
+        .eq('supabase_auth_id', authUser.id)
+        .single();
+
+      if (!user?.workspace_id) {
+        if (showAlert) alert('No workspace found');
+        return;
+      }
+
       const response = await fetch('/api/instagram/cookie/inbox/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cookies,
           accountId: selectedAccount.id,
+          workspaceId: user.workspace_id,
         }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        alert(`Synced ${result.syncedConversations} conversations and ${result.syncedMessages} messages!`);
+        if (showAlert) {
+          alert(`Synced ${result.syncedConversations} conversations and ${result.syncedMessages} messages!`);
+        }
         await fetchConversations();
+        
+        // Refresh messages if conversation is selected
+        if (selectedConversation) {
+          await fetchMessages(selectedConversation.id);
+        }
       } else {
-        alert('Sync failed: ' + (result.error || 'Unknown error'));
+        if (showAlert) {
+          alert('Sync failed: ' + (result.error || 'Unknown error'));
+        }
       }
     } catch (error) {
       console.error('Error syncing inbox:', error);
-      alert('Failed to sync inbox');
+      if (showAlert) {
+        alert('Failed to sync inbox');
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -575,6 +606,33 @@ export default function InboxPage() {
       handleSelectConversation(filteredConversations[0]);
     }
   }, [filteredConversations, selectedConversation, handleSelectConversation]);
+
+  // Auto-poll for new messages every 30 seconds
+  useEffect(() => {
+    if (!selectedAccount) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        // Auto-sync inbox (silent, no alert)
+        await handleSyncInbox(false);
+      } catch (error) {
+        console.error('Error polling for messages:', error);
+      }
+    }, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [selectedAccount?.id]); // Only depend on account ID
+
+  // Auto-sync inbox when account changes (initial sync)
+  useEffect(() => {
+    if (selectedAccount) {
+      // Sync inbox when account is selected (with a small delay to avoid rate limits)
+      const syncTimer = setTimeout(() => {
+        handleSyncInbox(false); // Silent sync on account change
+      }, 2000);
+      return () => clearTimeout(syncTimer);
+    }
+  }, [selectedAccount?.id]); // Only sync when account ID changes
 
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
 

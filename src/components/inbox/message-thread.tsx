@@ -182,7 +182,15 @@ export function MessageThread({ conversation, messages, onSendMessage, isLoading
                         )}
                       </div>
                       {isOutbound && message.isFirstMessage && (
-                        <span className="text-xs text-amber-400 px-1 flex items-center gap-1">
+                        <span className="text-xs px-1 flex items-center gap-1" style={{
+                          color: message.isPendingApproval 
+                            ? '#f59e0b' // amber for pending
+                            : message.approvalStatus === 'approved'
+                            ? '#10b981' // green for approved
+                            : message.approvalStatus === 'blocked'
+                            ? '#ef4444' // red for blocked
+                            : '#6b7280' // gray for unknown
+                        }}>
                           {message.isPendingApproval ? (
                             <>
                               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -190,12 +198,17 @@ export function MessageThread({ conversation, messages, onSendMessage, isLoading
                               </svg>
                               First message • Pending approval
                             </>
+                          ) : message.approvalStatus === 'approved' ? (
+                            <>
+                              <CheckCheck className="h-3 w-3" />
+                              First message • Accepted
+                            </>
                           ) : (
                             'First message'
                           )}
                         </span>
                       )}
-                      {isOutbound && message.approvalStatus === 'blocked' && (
+                      {isOutbound && message.approvalStatus === 'blocked' && !message.isFirstMessage && (
                         <span className="text-xs text-error px-1 flex items-center gap-1">
                           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />

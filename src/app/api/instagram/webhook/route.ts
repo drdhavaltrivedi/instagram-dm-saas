@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       return new Response('EVENT_RECEIVED', { status: 200 });
     }
 
-    // TODO: Process webhook events
+    // Webhook event processing will be implemented
     // This should handle:
     // - Incoming messages
     // - Message reads

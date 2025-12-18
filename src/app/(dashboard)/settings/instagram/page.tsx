@@ -1018,7 +1018,7 @@ export default function InstagramSettingsPage() {
                     {[
                       { key: 'META_APP_ID', value: 'your_app_id' },
                       { key: 'META_APP_SECRET', value: 'your_app_secret' },
-                      { key: 'META_OAUTH_REDIRECT_URI', value: 'http://localhost:3000/api/instagram/oauth/callback' },
+                      { key: 'META_OAUTH_REDIRECT_URI', value: 'http://localhost:3000/api/instagram/callback' },
                     ].map((env) => (
                       <div key={env.key} className="flex items-center gap-2 bg-background-secondary rounded px-3 py-2">
                         <code className="flex-1 text-xs text-foreground-muted">

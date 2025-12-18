@@ -15,8 +15,19 @@ export async function GET(request: NextRequest) {
     return Response.json({ count });
   } catch (error: any) {
     console.error('Failed to get unread count:', error);
+    const errorMessage = error?.message || 'Failed to get unread count';
+    const errorDetails = {
+      message: errorMessage,
+      name: error?.name,
+      code: error?.code,
+      meta: error?.meta,
+    };
+    console.error('Error details:', JSON.stringify(errorDetails, null, 2));
     return Response.json(
-      { error: error?.message || 'Failed to get unread count' },
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+      },
       { status: 500 }
     );
   }

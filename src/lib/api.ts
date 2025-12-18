@@ -50,7 +50,7 @@ class ApiClient {
       ...(options.headers as Record<string, string>),
     };
 
-    // Add auth headers (temporary - will be replaced with JWT)
+    // Add auth headers
     if (this.workspaceId) {
       headers['x-workspace-id'] = this.workspaceId;
     }
@@ -255,6 +255,40 @@ class ApiClient {
     return this.fetch<any>(`/api/notifications/preferences/${type}`, {
       method: 'PUT',
       body: JSON.stringify(preferences),
+    });
+  }
+
+  // ==========================================================================
+  // User Profile
+  // ==========================================================================
+
+  async getUserProfile(): Promise<{
+    id: string;
+    email: string;
+    name: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    timezone: string | null;
+    bio: string | null;
+    avatarUrl: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }> {
+    return this.fetch('/api/user/profile');
+  }
+
+  async updateUserProfile(data: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    timezone?: string;
+    bio?: string;
+    name?: string;
+  }): Promise<any> {
+    return this.fetch('/api/user/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
     });
   }
 }

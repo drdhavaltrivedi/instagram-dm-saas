@@ -19,7 +19,6 @@ export class NotificationService {
       });
 
       if (users.length === 0) {
-        console.debug(`No users found for workspace ${workspaceId}`);
         return;
       }
 
@@ -64,14 +63,13 @@ export class NotificationService {
           });
         }
 
-        // TODO: Send email notification if enabled
+        // Email and push notifications are not yet implemented
         if (effectivePreference?.email) {
-          console.debug(`Email notification enabled for ${user.email} (not implemented)`);
+          // Email notification will be implemented in the future
         }
 
-        // TODO: Send push notification if enabled
         if (effectivePreference?.push) {
-          console.debug(`Push notification enabled for ${user.id} (not implemented)`);
+          // Push notification will be implemented in the future
         }
       }
 

@@ -253,26 +253,15 @@ export class InstagramCookieService {
       const ig = await this.getClient(cookies);
       
       // Try to get user info to validate the user exists (optional check)
-      let userInfo = null;
       try {
-        userInfo = await ig.user.info(userIdStr);
-        console.log('User info retrieved:', { userId: userIdStr, username: userInfo?.username });
+        await ig.user.info(userIdStr);
       } catch (userError: any) {
-        const errorMsg = userError?.message || 'Unknown error';
-        console.warn('Could not fetch user info:', errorMsg);
         // Continue anyway - user might exist but info might be private
       }
 
       // Create thread and send message
       // Note: Instagram requires the user ID to be in the thread array
       const thread = ig.entity.directThread([userIdStr]);
-      
-      // Log the attempt
-      console.log('Attempting to send DM:', { 
-        userId: userIdStr, 
-        messageLength: message.length,
-        hasUserInfo: !!userInfo 
-      });
       
       const result = await thread.broadcastText(message) as any;
       

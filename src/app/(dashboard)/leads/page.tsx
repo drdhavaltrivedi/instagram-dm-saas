@@ -175,8 +175,8 @@ export default function LeadsPage() {
   // Leads list state
   const [leadsSearchQuery, setLeadsSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'followers' | 'name'>('newest');
-  const [currentPage, setCurrentPage] = useState(1);
-  const leadsPerPage = 20;
+  const [displayedLeadsCount, setDisplayedLeadsCount] = useState(50); // Start with 50 leads
+  const leadsPerBatch = 50; // Load 50 more at a time
   
   // Modals
   const [showBulkDmModal, setShowBulkDmModal] = useState(false);
@@ -750,12 +750,14 @@ export default function LeadsPage() {
       }
     });
 
-  // Pagination
-  const totalPages = Math.ceil(processedLeads.length / leadsPerPage);
-  const paginatedLeads = processedLeads.slice(
-    (currentPage - 1) * leadsPerPage,
-    currentPage * leadsPerPage
-  );
+  // Display leads (limited by displayedLeadsCount)
+  const displayedLeads = processedLeads.slice(0, displayedLeadsCount);
+  const hasMoreLeads = processedLeads.length > displayedLeadsCount;
+
+  // Load more leads
+  const handleLoadMore = () => {
+    setDisplayedLeadsCount(prev => prev + leadsPerBatch);
+  };
 
   // Reset page when filters change
   useEffect(() => {
@@ -1288,7 +1290,7 @@ export default function LeadsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {paginatedLeads.map(lead => (
+                  {displayedLeads.map(lead => (
                     <tr key={lead.id} className="hover:bg-background-elevated/50">
                       <td className="p-4">
                         <input
@@ -1359,62 +1361,29 @@ export default function LeadsPage() {
             </div>
           )}
 
-          {/* Pagination */}
-          {processedLeads.length > leadsPerPage && (
-            <div className="p-4 border-t border-border flex items-center justify-between">
-              <div className="text-sm text-foreground-muted">
-                Showing {((currentPage - 1) * leadsPerPage) + 1} - {Math.min(currentPage * leadsPerPage, processedLeads.length)} of {processedLeads.length} leads
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                
-                {/* Page Numbers */}
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={cn(
-                          'w-8 h-8 rounded-lg text-sm font-medium transition-colors',
-                          currentPage === pageNum
-                            ? 'bg-accent text-white'
-                            : 'bg-background-elevated text-foreground-muted hover:text-foreground'
-                        )}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+          {/* Load More Button */}
+          {hasMoreLeads && (
+            <div className="p-4 border-t border-border flex items-center justify-center">
+              <div className="text-center space-y-3">
+                <div className="text-sm text-foreground-muted">
+                  Showing {displayedLeads.length} of {processedLeads.length} leads
                 </div>
-                
                 <Button
                   variant="secondary"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
+                  size="lg"
+                  onClick={handleLoadMore}
+                  className="min-w-[200px]"
                 >
-                  Next
+                  <Plus className="h-4 w-4 mr-2" />
+                  Load {Math.min(leadsPerBatch, processedLeads.length - displayedLeads.length)} More
                 </Button>
               </div>
+            </div>
+          )}
+          
+          {!hasMoreLeads && processedLeads.length > 0 && (
+            <div className="p-4 border-t border-border text-center text-sm text-foreground-muted">
+              Showing all {processedLeads.length} leads
             </div>
           )}
         </div>

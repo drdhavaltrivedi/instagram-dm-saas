@@ -8,7 +8,19 @@
 # ============================================
 
 # Database (Required)
+# ⚠️ CRITICAL: Must start with postgresql:// or postgres://
 # Get from: Vercel Postgres, Supabase, Railway, or other provider
+# 
+# Correct format examples:
+#   postgresql://user:password@host:5432/database
+#   postgresql://user:password@host.example.com:5432/database
+#   postgres://user:password@host:5432/database
+#
+# ❌ WRONG (will cause errors):
+#   user:password@host:5432/database  (missing protocol)
+#   postgresql:user:password@host     (wrong format)
+#   DATABASE_URL= postgresql://...    (extra spaces)
+#
 DATABASE_URL=postgresql://user:password@host:port/database
 DIRECT_URL=postgresql://user:password@host:port/database
 

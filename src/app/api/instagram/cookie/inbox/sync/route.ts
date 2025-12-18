@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { instagramCookieService } from '@/lib/server/instagram/cookie-service';
 import { prisma } from '@/lib/server/prisma/client';
+import { requireAuth } from '@/lib/server/auth';
 import type { InstagramCookies } from '@/lib/server/instagram/types';
 
 export async function POST(request: NextRequest) {
   try {
-    const { cookies, accountId, workspaceId } = await request.json() as {
+    const auth = await requireAuth(request);
+    if (auth instanceof Response) return auth; // Error response
+
+    const { cookies, accountId } = await request.json() as {
       cookies: InstagramCookies;
       accountId: string;
-      workspaceId?: string;
     };
 
     if (!cookies || !cookies.sessionId || !cookies.dsUserId) {
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const finalWorkspaceId = workspaceId || '11111111-1111-1111-1111-111111111111';
+    const finalWorkspaceId = auth.workspaceId;
     
     // Get inbox threads from Instagram
     const threads = await instagramCookieService.getInbox(cookies, 20);
@@ -94,6 +97,9 @@ export async function POST(request: NextRequest) {
         for (const msg of messages) {
           if (!msg.text) continue;
 
+          // Determine if this is from us or from them
+          const isFromUs = msg.userId === cookies.dsUserId;
+
           // Check if message already exists
           const existing = await prisma.message.findFirst({
             where: {
@@ -103,8 +109,13 @@ export async function POST(request: NextRequest) {
           });
 
           if (!existing) {
-            // Determine if this is from us or from them
-            const isFromUs = msg.userId === cookies.dsUserId;
+            // Determine message status
+            // For outbound messages, check if they've been read
+            let messageStatus: 'PENDING' | 'SENT' | 'DELIVERED' | 'READ' = 'DELIVERED';
+            if (isFromUs) {
+              // Check if message has been read (Instagram provides read receipts)
+              messageStatus = (msg as any).readAt ? 'READ' : ((msg as any).deliveredAt ? 'DELIVERED' : 'SENT');
+            }
 
             await prisma.message.create({
               data: {
@@ -113,13 +124,80 @@ export async function POST(request: NextRequest) {
                 content: msg.text,
                 messageType: 'TEXT',
                 direction: isFromUs ? 'OUTBOUND' : 'INBOUND',
-                status: 'DELIVERED',
+                status: messageStatus,
                 sentAt: new Date(msg.timestamp).toISOString(),
+                deliveredAt: (msg as any).deliveredAt ? new Date((msg as any).deliveredAt).toISOString() : null,
+                readAt: (msg as any).readAt ? new Date((msg as any).readAt).toISOString() : null,
                 createdAt: new Date(msg.timestamp).toISOString(),
               },
             });
 
             syncedMessages++;
+          } else {
+            // Update existing message status if it's an outbound message
+            if (isFromUs && existing.direction === 'OUTBOUND') {
+              const updateData: any = {};
+              if ((msg as any).readAt && !existing.readAt) {
+                updateData.readAt = new Date((msg as any).readAt).toISOString();
+                updateData.status = 'READ';
+              } else if ((msg as any).deliveredAt && !existing.deliveredAt) {
+                updateData.deliveredAt = new Date((msg as any).deliveredAt).toISOString();
+                if (existing.status !== 'READ') {
+                  updateData.status = 'DELIVERED';
+                }
+              }
+
+              if (Object.keys(updateData).length > 0) {
+                await prisma.message.update({
+                  where: { id: existing.id },
+                  data: updateData,
+                });
+              }
+            }
+          }
+        }
+
+        // Update conversation status - check if user accepted our first message
+        const firstOutboundMessage = await prisma.message.findFirst({
+          where: {
+            conversationId: conversation.id,
+            direction: 'OUTBOUND',
+            isFirstMessage: true,
+          },
+        });
+
+        if (firstOutboundMessage) {
+          // Check if there are any inbound messages after the first outbound (user accepted)
+          const hasInboundAfterFirst = await prisma.message.findFirst({
+            where: {
+              conversationId: conversation.id,
+              direction: 'INBOUND',
+              createdAt: {
+                gt: firstOutboundMessage.createdAt,
+              },
+            },
+          });
+
+          // Update conversation request status
+          await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              isRequestPending: !hasInboundAfterFirst,
+            },
+          });
+
+          // Update first message approval status if user replied
+          if (hasInboundAfterFirst) {
+            await prisma.message.updateMany({
+              where: {
+                conversationId: conversation.id,
+                isFirstMessage: true,
+              },
+              data: {
+                isPendingApproval: false,
+                approvalStatus: 'approved',
+              },
+            });
           }
         }
 

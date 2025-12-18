@@ -10,20 +10,28 @@
 3. Go to **Storage** tab
 4. Click **Create Database** → Select **Postgres**
 5. Copy the connection strings:
-   - `DATABASE_URL` - Connection pooler URL
-   - `DIRECT_URL` - Direct connection URL (usually same as DATABASE_URL)
+   - `DATABASE_URL` - Connection pooler URL (must start with `postgresql://`)
+   - `DIRECT_URL` - Direct connection URL (must start with `postgresql://`)
+
+> ⚠️ **IMPORTANT**: The connection string MUST start with `postgresql://` or `postgres://`. 
+> If you see an error like "the URL must start with the protocol postgresql://", 
+> check that there are no extra spaces and the URL starts correctly.
 
 **Option B: Use Supabase (Free Tier Available)**
 1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
 2. Create a new project
 3. Go to **Settings** → **Database**
 4. Copy:
-   - `Connection string` → Use for `DATABASE_URL`
+   - `Connection string` → Use for `DATABASE_URL` (should start with `postgresql://`)
    - `Connection pooling` → Use for `DIRECT_URL` (or same as DATABASE_URL)
+
+> ⚠️ **IMPORTANT**: Make sure the connection string starts with `postgresql://`. 
+> Supabase sometimes shows it without the protocol - add it if missing!
 
 **Option C: Use Railway/Neon/Other**
 - Get connection string from your database provider
 - Format: `postgresql://user:password@host:port/database`
+- ⚠️ **MUST start with `postgresql://` or `postgres://`**
 
 ### 2. Supabase (NEXT_PUBLIC_SUPABASE_URL & NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
@@ -100,8 +108,8 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    Click **Environment Variables** and add:
    
    ```
-   DATABASE_URL=your-database-connection-string
-   DIRECT_URL=your-direct-connection-string
+   DATABASE_URL=postgresql://user:password@host:port/database
+   DIRECT_URL=postgresql://user:password@host:port/database
    NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
    NEXT_PUBLIC_BACKEND_URL=https://your-project.vercel.app
@@ -110,6 +118,12 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    NEXT_PUBLIC_POSTHOG_KEY=your-posthog-key (optional)
    NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com (optional)
    ```
+   
+   > ⚠️ **CRITICAL FOR DATABASE_URL**:
+   > - Must start with `postgresql://` or `postgres://`
+   > - No extra spaces before or after the value
+   > - No quotes needed (Vercel handles this automatically)
+   > - Example: `postgresql://user:pass@host:5432/dbname`
 
 5. **Deploy**:
    - Click **Deploy**
@@ -234,6 +248,42 @@ After deployment, update the extension to use your Vercel URL:
 
 ## 🔧 Troubleshooting
 
+### Error: "the URL must start with the protocol `postgresql://` or `postgres://`"
+
+**Problem**: Your `DATABASE_URL` environment variable is not in the correct format.
+
+**Solution**:
+1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+2. Check your `DATABASE_URL` value
+3. Make sure it starts with `postgresql://` or `postgres://`
+4. Remove any extra spaces before or after the value
+5. Don't add quotes around the value (Vercel adds them automatically)
+
+**Correct Format Examples**:
+```
+✅ postgresql://user:password@host:5432/database
+✅ postgresql://user:password@host.example.com:5432/database
+✅ postgres://user:password@host:5432/database
+```
+
+**Wrong Format Examples**:
+```
+❌ user:password@host:5432/database  (missing protocol)
+❌ postgresql:user:password@host    (wrong format)
+❌  postgresql://...                (extra space at start)
+❌ postgresql://...                 (extra space at end)
+❌ "postgresql://..."               (quotes not needed)
+```
+
+**How to Fix**:
+1. Copy your connection string from your database provider
+2. If it doesn't start with `postgresql://`, add it
+3. Paste it into Vercel Environment Variables
+4. Make sure there are no spaces before or after
+5. Save and redeploy
+
+### Error: "Environment variable not found: DATABASE_URL"
+
 ### Build Fails
 
 **Error: "Module not found"**
@@ -256,6 +306,12 @@ After deployment, update the extension to use your Vercel URL:
 - Check `DATABASE_URL` is correct
 - Verify database allows connections from Vercel IPs
 - For Supabase: Check connection pooling settings
+
+**Error: "the URL must start with the protocol `postgresql://`"**
+- Your `DATABASE_URL` is missing the protocol prefix
+- Make sure it starts with `postgresql://` or `postgres://`
+- Remove any extra spaces before or after the value
+- In Vercel, don't add quotes around the value
 
 ### Extension Not Working
 
