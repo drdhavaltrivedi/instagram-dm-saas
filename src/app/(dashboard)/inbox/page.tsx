@@ -151,9 +151,6 @@ export default function InboxPage() {
         errorMessage: msg.error_message,
         aiGenerated: msg.ai_generated,
         createdAt: msg.created_at,
-        isFirstMessage: msg.is_first_message,
-        isPendingApproval: msg.is_pending_approval,
-        approvalStatus: msg.approval_status,
       }));
 
       setMessages(transformedMessages);
@@ -203,16 +200,6 @@ export default function InboxPage() {
       // Get cookies from localStorage
       const cookiesStr = localStorage.getItem(`bulkdm_cookies_${selectedAccount.igUserId}`);
       
-      // Check if this is the first message
-      const { data: existingMessages } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('conversation_id', selectedConversation.id)
-        .eq('direction', 'OUTBOUND')
-        .limit(1);
-      
-      const isFirstMessage = !existingMessages || existingMessages.length === 0;
-      
       // Insert new message into database
       const { data: newMessage, error } = await supabase
         .from('messages')
@@ -222,9 +209,6 @@ export default function InboxPage() {
           direction: 'OUTBOUND',
           status: 'PENDING',
           sent_at: new Date().toISOString(),
-          is_first_message: isFirstMessage,
-          is_pending_approval: isFirstMessage, // First messages typically need approval
-          approval_status: isFirstMessage ? 'pending' : 'approved',
         })
         .select()
         .single();
@@ -315,11 +299,11 @@ export default function InboxPage() {
               .update({ last_message_at: new Date().toISOString() })
               .eq('id', selectedConversation.id);
             
-            // Refresh conversations and accounts to update daily limit
+            // Refresh conversations to update the list and show new messages
             await fetchConversations();
             await fetchAccounts();
             
-            // Refresh messages to show the updated status
+            // Refresh messages to show the updated message with correct status
             await fetchMessages(selectedConversation.id);
           } else {
             throw new Error(result.error || result.message || 'Failed to send');
@@ -350,16 +334,21 @@ export default function InboxPage() {
         }, 500);
       }
 
-      // Update conversation last_message_at
+      // Update conversation last_message_at (only if not already updated above)
+      // This ensures the conversation appears at the top of the list
       await supabase
         .from('conversations')
         .update({ last_message_at: new Date().toISOString() })
         .eq('id', selectedConversation.id);
 
+      // Refresh conversations to update the side panel
+      await fetchConversations();
+
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error('Failed to send message');
     }
-  }, [selectedConversation, selectedAccount]);
+  }, [selectedConversation, selectedAccount, fetchConversations, fetchMessages, fetchAccounts]);
 
   // Handle sending new DM
   const handleSendNewDm = async () => {
