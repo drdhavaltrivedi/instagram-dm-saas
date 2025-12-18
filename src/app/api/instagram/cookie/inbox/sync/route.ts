@@ -158,11 +158,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Update conversation status - check if user accepted our first message
+        // Find the first outbound message (oldest outbound message)
         const firstOutboundMessage = await prisma.message.findFirst({
           where: {
             conversationId: conversation.id,
             direction: 'OUTBOUND',
-            isFirstMessage: true,
+          },
+          orderBy: {
+            createdAt: 'asc',
           },
         });
 
@@ -178,27 +181,8 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          // Update conversation request status
-          await prisma.conversation.update({
-            where: { id: conversation.id },
-            data: {
-              isRequestPending: !hasInboundAfterFirst,
-            },
-          });
-
-          // Update first message approval status if user replied
-          if (hasInboundAfterFirst) {
-            await prisma.message.updateMany({
-              where: {
-                conversationId: conversation.id,
-                isFirstMessage: true,
-              },
-              data: {
-                isPendingApproval: false,
-                approvalStatus: 'approved',
-              },
-            });
-          }
+          // Note: isRequestPending field doesn't exist in schema, so we skip that update
+          // The conversation status can be used to track this if needed in the future
         }
 
         // Small delay to avoid rate limits
