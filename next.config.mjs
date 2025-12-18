@@ -1,5 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,24 +27,34 @@ const nextConfig = {
   },
   // Webpack configuration for Supabase and path aliases
   webpack: (config, { isServer }) => {
-    // Get the absolute path to src directory - use multiple methods for reliability
+    // Get the absolute path to src directory
     const projectRoot = process.cwd();
     const srcPath = path.resolve(projectRoot, 'src');
     
-    // CRITICAL: Ensure resolve and alias exist
+    // Ensure resolve exists
     config.resolve = config.resolve || {};
     config.resolve.alias = config.resolve.alias || {};
     
-    // Set the @ alias - this MUST be an absolute path
-    // Use Object.assign to ensure it's set correctly
-    Object.assign(config.resolve.alias, {
-      '@': srcPath,
-    });
+    // Set the @ alias - must be absolute path
+    config.resolve.alias['@'] = srcPath;
     
-    // Debug: Log the alias in development (won't show in Vercel but helps locally)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Webpack alias @ set to:', srcPath);
+    // Add tsconfig-paths-webpack-plugin to resolve paths from tsconfig.json
+    // This ensures paths work even if webpack alias doesn't
+    if (config.resolve.plugins) {
+      config.resolve.plugins = config.resolve.plugins.filter(
+        (plugin) => !(plugin instanceof TsconfigPathsPlugin)
+      );
+    } else {
+      config.resolve.plugins = [];
     }
+    
+    // Add the plugin to read tsconfig paths
+    config.resolve.plugins.push(
+      new TsconfigPathsPlugin({
+        configFile: path.resolve(projectRoot, 'tsconfig.json'),
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+      })
+    );
 
     // Client-side fallbacks
     if (!isServer) {
