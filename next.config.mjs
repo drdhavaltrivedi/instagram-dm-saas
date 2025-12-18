@@ -26,11 +26,11 @@ const nextConfig = {
   },
   // Webpack configuration for Supabase and path aliases
   webpack: (config, { isServer }) => {
-    // Add path alias for @/ to src/
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': path.resolve(__dirname, 'src'),
-    };
+    // Add path alias for @/ to src/ - must be set before fallback
+    if (!config.resolve.alias) {
+      config.resolve.alias = {};
+    }
+    config.resolve.alias['@'] = path.resolve(__dirname, 'src');
 
     if (!isServer) {
       config.resolve.fallback = {
