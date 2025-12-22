@@ -210,14 +210,14 @@ export default function HomePage() {
             {/* Main Heading */}
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 animate-slide-up">
               <span className="bg-gradient-to-r from-foreground via-accent to-pink-500 bg-clip-text text-transparent">
-                Master Your Instagram
+                An Instagram Outreach Tool
               </span>
               <br />
-              <span className="text-foreground">DMs with AI</span>
+              <span className="text-foreground">to Convert 3x More Leads</span>
             </h1>
 
             <p className="text-xl text-foreground-muted max-w-2xl mx-auto mb-10 animate-slide-up delay-200">
-              Automate responses, manage conversations, and grow your business with the most intelligent Instagram DM platform.
+              Manage Instagram conversations, streamline outreach, and keep track of every lead from one place.
             </p>
 
             {/* CTA Buttons */}
