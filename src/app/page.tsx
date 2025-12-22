@@ -28,11 +28,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { HomepageStructuredData } from '@/components/seo/structured-data';
+import { WaitingListForm } from '@/components/waiting-list-form';
 
 export default function HomePage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [isWaitingListOpen, setIsWaitingListOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -177,17 +179,13 @@ export default function HomePage() {
               <Link href="/docs">
                 <Button variant="ghost" size="sm">Docs</Button>
               </Link>
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button size="sm">
-                  Get Started
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
+              <Button
+                size="sm"
+                onClick={() => setIsWaitingListOpen(true)}
+              >
+                Join Waiting List
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
             </div>
           </div>
         </div>
@@ -224,12 +222,14 @@ export default function HomePage() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-slide-up delay-300">
-              <Link href="/signup">
-                <Button size="lg" className="group">
-                  Start Free Trial
-                  <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
+              <Button
+                size="lg"
+                className="group"
+                onClick={() => setIsWaitingListOpen(true)}
+              >
+                Join Waiting List
+                <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
               <Link href="/login">
                 <Button variant="secondary" size="lg">
                   Watch Demo
@@ -367,17 +367,14 @@ export default function HomePage() {
               Join thousands of creators and businesses using Socialora to automate and scale their Instagram engagement.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/signup">
-                <Button size="lg" className="group">
-                  Start Free Trial
-                  <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="secondary" size="lg">
-                  Sign In
-                </Button>
-              </Link>
+              <Button
+                size="lg"
+                className="group"
+                onClick={() => setIsWaitingListOpen(true)}
+              >
+                Join Waiting List
+                <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
             </div>
             <p className="text-sm text-foreground-muted mt-6">
               No credit card required • 14-day free trial • Cancel anytime
@@ -458,6 +455,12 @@ export default function HomePage() {
           animation-delay: 1s;
         }
       `}</style>
+
+      {/* Waiting List Dialog */}
+      <WaitingListForm
+        open={isWaitingListOpen}
+        onOpenChange={setIsWaitingListOpen}
+      />
     </div>
   );
 }
