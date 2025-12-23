@@ -16,8 +16,8 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BACKEND_URL || 'https://www.socialora.app'),
   title: {
-    default: "Socialora - #1 Instagram DM Automation Tool | AI-Powered Cold DM Automation 2025",
-    template: "%s | Socialora - Instagram DM Automation"
+    default: "SocialOra - #1 Instagram DM Automation Tool | AI-Powered Cold DM Automation 2025",
+    template: "%s | SocialOra - Instagram DM Automation"
   },
   description: "Automate Instagram DMs with AI-powered cold DM automation. Scale outreach, manage conversations, and convert leads. Best Instagram DM automation tool for businesses, creators & agencies. Free 14-day trial.",
   keywords: [
@@ -52,9 +52,9 @@ export const metadata: Metadata = {
     "Instagram automation alternatives",
     "Instagram DM automation features"
   ],
-  authors: [{ name: "Socialora" }],
-  creator: "Socialora",
-  publisher: "Socialora",
+  authors: [{ name: "SocialOra" }],
+  creator: "SocialOra",
+  publisher: "SocialOra",
   formatDetection: {
     email: false,
     address: false,
@@ -64,24 +64,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    siteName: "Socialora",
-    title: "Socialora - #1 Instagram DM Automation Tool | AI-Powered Cold DM Automation 2025",
+    siteName: "SocialOra",
+    title: "SocialOra - #1 Instagram DM Automation Tool | AI-Powered Cold DM Automation 2025",
     description: "Automate Instagram DMs with AI-powered cold DM automation. Scale outreach, manage conversations, and convert leads. Best Instagram DM automation tool for businesses, creators & agencies.",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Socialora - Instagram DM Automation Tool",
+        alt: "SocialOra - Instagram DM Automation Tool",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Socialora - #1 Instagram DM Automation Tool | AI-Powered Cold DM Automation",
+    title: "SocialOra - #1 Instagram DM Automation Tool | AI-Powered Cold DM Automation",
     description: "Automate Instagram DMs with AI-powered cold DM automation. Scale outreach, manage conversations, and convert leads. Free 14-day trial.",
     images: ["/og-image.jpg"],
-    creator: "@socialora",
+    creator: "@SocialOra",
   },
   robots: {
     index: true,
@@ -98,6 +98,11 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   category: "technology",
+  icons: {
+    icon: '/images/logo.png',
+    shortcut: '/images/logo.png',
+    apple: '/images/logo.png',
+  },
 };
 
 export default function RootLayout({

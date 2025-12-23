@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { Instagram, Mail, CheckCircle, AlertCircle } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import {
-  validateEmail,
-  validateInstagramId,
+    validateEmail,
+    validateInstagramId,
 } from "@/lib/waiting-list/validation";
+import { AlertCircle, CheckCircle, Instagram, Mail } from 'lucide-react';
+import { useState } from 'react';
 
 // ============================================================================
 // Types
@@ -169,7 +169,7 @@ export function WaitingListForm({ open, onOpenChange }: WaitingListFormProps) {
               Successfully Joined!
             </h3>
             <p className="text-foreground-muted">
-              We'll notify you when Socialora is ready.
+              We'll notify you when SocialOra is ready.
             </p>
           </div>
         ) : (
@@ -177,7 +177,7 @@ export function WaitingListForm({ open, onOpenChange }: WaitingListFormProps) {
           <>
             <div>
               <p className="text-sm text-foreground-muted mb-4">
-                Enter your email address to join our waiting list. We'll notify you when Socialora is ready!
+                Enter your email address to join our waiting list. We'll notify you when SocialOra is ready!
               </p>
             </div>
 

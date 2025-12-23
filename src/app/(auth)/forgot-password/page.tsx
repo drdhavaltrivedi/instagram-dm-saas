@@ -102,17 +102,17 @@ export default function ForgotPasswordPage() {
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           {/* Logo */}
           <div className="flex items-center">
-            <div className="h-20 w-20 flex items-center justify-center overflow-hidden">
+            <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
               <Image 
                 src="/images/logo.png" 
-                alt="Socialora" 
-                width={80} 
-                height={80} 
+                alt="SocialOra" 
+                width={56} 
+                height={56} 
                 className="h-full w-full object-contain" 
               />
             </div>
-            <span className="font-bold text-2xl tracking-tight">
-              Social<span className="text-accent">ora</span>
+            <span className="font-bold text-xl">
+              Social<span className="text-accent">Ora</span>
             </span>
           </div>
           
@@ -133,18 +133,20 @@ export default function ForgotPasswordPage() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center mb-8 justify-center">
-            <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
-              <Image 
-                src="/images/logo.png" 
-                alt="Socialora" 
-                width={56} 
-                height={56} 
-                className="h-full w-full object-contain" 
-              />
+            <div className="flex items-center">
+              <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="SocialOra" 
+                  width={56} 
+                  height={56} 
+                  className="h-full w-full object-contain" 
+                />
+              </div>
+              <span className="font-bold text-xl">
+                Social<span className="text-accent">Ora</span>
+              </span>
             </div>
-            <span className="font-bold text-xl">
-              Social<span className="text-accent">ora</span>
-            </span>
           </div>
           
           <div className="text-center mb-8">

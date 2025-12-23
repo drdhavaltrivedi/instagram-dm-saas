@@ -1,7 +1,8 @@
-import Link from 'next/link';
-import { Instagram, ArrowLeft, Calendar, Clock, User, Share2, Twitter, Facebook, Linkedin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft, Calendar, Clock, Facebook, Linkedin, Twitter, User } from 'lucide-react';
 import type { Metadata } from 'next';
+import Image from 'next/image';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 interface BlogPost {
@@ -19,7 +20,7 @@ interface BlogPost {
 }
 
 // Import blog posts data
-import { getBlogPost, getAllBlogSlugs } from '@/lib/blog-posts';
+import { getAllBlogSlugs, getBlogPost } from '@/lib/blog-posts';
 
 export async function generateStaticParams() {
   const slugs = getAllBlogSlugs();
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   
   if (!post) {
     return {
-      title: 'Blog Post Not Found | Socialora',
+      title: 'Blog Post Not Found | SocialOra',
     };
   }
 
@@ -72,12 +73,20 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+              <div className="flex items-center">
+                <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                  <Image 
+                    src="/images/logo.png" 
+                    alt="SocialOra" 
+                    width={56} 
+                    height={56} 
+                    className="h-full w-full object-contain" 
+                  />
+                </div>
+                <span className="font-bold text-xl">
+                  Social<span className="text-accent">Ora</span>
+                </span>
               </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
-              </span>
             </Link>
             <div className="flex items-center gap-4">
               <Link href="/blog">
@@ -175,7 +184,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
             Ready to Start Automating Your Instagram DMs?
           </h2>
           <p className="text-foreground-muted mb-6">
-            Join thousands of businesses using Socialora to automate their Instagram outreach and grow their audience.
+            Join thousands of businesses using SocialOra to automate their Instagram outreach and grow their audience.
           </p>
           <Link href="/">
             <Button size="lg">
@@ -201,12 +210,20 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+              <div className="flex items-center">
+                <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                  <Image 
+                    src="/images/logo.png" 
+                    alt="SocialOra" 
+                    width={56} 
+                    height={56} 
+                    className="h-full w-full object-contain" 
+                  />
+                </div>
+                <span className="font-bold text-xl">
+                  Social<span className="text-accent">Ora</span>
+                </span>
               </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
-              </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-foreground-muted">
               <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
@@ -215,7 +232,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               <Link href="/support" className="hover:text-foreground transition-colors">Support</Link>
             </div>
             <p className="text-sm text-foreground-muted">
-              © 2025 Socialora. All rights reserved.
+              © 2025 SocialOra. All rights reserved.
             </p>
           </div>
         </div>

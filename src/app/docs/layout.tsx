@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Documentation - Instagram DM Automation Guide | Socialora',
-  description: 'Complete guide to using Socialora for Instagram DM automation. Learn how to connect accounts, create campaigns, automate responses, find leads, and analyze performance.',
+  title: 'Documentation - Instagram DM Automation Guide | SocialOra',
+  description: 'Complete guide to using SocialOra for Instagram DM automation. Learn how to connect accounts, create campaigns, automate responses, find leads, and analyze performance.',
   keywords: [
     'Instagram DM automation guide',
     'Instagram automation tutorial',
@@ -13,14 +13,14 @@ export const metadata: Metadata = {
     'Instagram automation guide 2025',
   ],
   openGraph: {
-    title: 'Documentation - Instagram DM Automation Guide | Socialora',
-    description: 'Complete guide to using Socialora for Instagram DM automation. Learn how to connect accounts, create campaigns, and automate responses.',
+    title: 'Documentation - Instagram DM Automation Guide | SocialOra',
+    description: 'Complete guide to using SocialOra for Instagram DM automation. Learn how to connect accounts, create campaigns, and automate responses.',
     type: 'website',
   },
   twitter: {
     card: 'summary',
-    title: 'Documentation - Instagram DM Automation Guide | Socialora',
-    description: 'Complete guide to using Socialora for Instagram DM automation.',
+    title: 'Documentation - Instagram DM Automation Guide | SocialOra',
+    description: 'Complete guide to using SocialOra for Instagram DM automation.',
   },
   alternates: {
     canonical: '/docs',

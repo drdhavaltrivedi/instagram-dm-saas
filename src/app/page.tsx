@@ -157,7 +157,7 @@ export default function HomePage() {
       role: "E-commerce Founder",
       image: "👩‍💼",
       content:
-        "Socialora transformed how I manage customer inquiries. Response time dropped by 80% and customer satisfaction skyrocketed!",
+        "SocialOra transformed how I manage customer inquiries. Response time dropped by 80% and customer satisfaction skyrocketed!",
       rating: 5,
     },
     {
@@ -173,7 +173,7 @@ export default function HomePage() {
       role: "Marketing Director",
       image: "👩‍💻",
       content:
-        "Managing multiple Instagram accounts was a nightmare. Socialora made it effortless with its unified inbox.",
+        "Managing multiple Instagram accounts was a nightmare. SocialOra made it effortless with its unified inbox.",
       rating: 5,
     },
   ];
@@ -196,14 +196,14 @@ export default function HomePage() {
               <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
                 <Image 
                   src="/images/logo.png" 
-                  alt="Socialora" 
+                  alt="SocialOra" 
                   width={56} 
                   height={56} 
                   className="h-full w-full object-contain" 
                 />
               </div>
               <span className="font-bold text-xl">
-                Social<span className="text-accent">ora</span>
+                Social<span className="text-accent">Ora</span>
               </span>
             </div>
 
@@ -392,7 +392,7 @@ export default function HomePage() {
               Get Started in <span className="text-accent">3 Simple Steps</span>
             </h2>
             <p className="text-lg text-foreground-muted max-w-2xl mx-auto">
-              Setting up Socialora is quick and easy. Start managing your
+              Setting up SocialOra is quick and easy. Start managing your
               Instagram DMs like a pro in minutes.
             </p>
           </div>
@@ -429,7 +429,7 @@ export default function HomePage() {
               Loved by <span className="text-accent">Thousands</span>
             </h2>
             <p className="text-lg text-foreground-muted max-w-2xl mx-auto">
-              See what our users are saying about Socialora.
+              See what our users are saying about SocialOra.
             </p>
           </div>
 
@@ -477,7 +477,7 @@ export default function HomePage() {
               Ready to Transform Your Instagram DMs?
             </h2>
             <p className="text-xl text-foreground-muted mb-8 max-w-2xl mx-auto">
-              Join thousands of creators and businesses using Socialora to
+              Join thousands of creators and businesses using SocialOra to
               automate and scale their Instagram engagement.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -501,17 +501,17 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center">
-              <div className="h-11 w-11 flex items-center justify-center overflow-hidden">
+              <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
                 <Image 
                   src="/images/logo.png" 
-                  alt="Socialora" 
-                  width={44} 
-                  height={44} 
+                  alt="SocialOra" 
+                  width={56} 
+                  height={56} 
                   className="h-full w-full object-contain" 
                 />
               </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
+              <span className="font-bold text-xl">
+                Social<span className="text-accent">Ora</span>
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-foreground-muted">
@@ -542,7 +542,7 @@ export default function HomePage() {
               </Link>
             </div>
             <p className="text-sm text-foreground-muted">
-              © 2025 Socialora. All rights reserved.
+              © 2025 SocialOra. All rights reserved.
             </p>
           </div>
         </div>

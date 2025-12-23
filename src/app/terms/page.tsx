@@ -1,20 +1,21 @@
-import Link from 'next/link';
-import { Instagram, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
+import Image from 'next/image';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service - Instagram DM Automation | Socialora',
-  description: 'Read Socialora\'s terms of service for Instagram DM automation. Understand usage guidelines, account responsibilities, and service terms.',
+  title: 'Terms of Service - Instagram DM Automation | SocialOra',
+  description: 'Read SocialOra\'s terms of service for Instagram DM automation. Understand usage guidelines, account responsibilities, and service terms.',
   keywords: [
-    'Socialora terms of service',
+    'SocialOra terms of service',
     'Instagram automation terms',
     'DM automation terms',
     'Instagram automation service agreement',
   ],
   openGraph: {
-    title: 'Terms of Service - Instagram DM Automation | Socialora',
-    description: 'Read Socialora\'s terms of service for Instagram DM automation. Understand usage guidelines and service terms.',
+    title: 'Terms of Service - Instagram DM Automation | SocialOra',
+    description: 'Read SocialOra\'s terms of service for Instagram DM automation. Understand usage guidelines and service terms.',
     type: 'website',
   },
   alternates: {
@@ -30,12 +31,20 @@ export default function TermsPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+              <div className="flex items-center">
+                <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                  <Image 
+                    src="/images/logo.png" 
+                    alt="SocialOra" 
+                    width={56} 
+                    height={56} 
+                    className="h-full w-full object-contain" 
+                  />
+                </div>
+                <span className="font-bold text-xl">
+                  Social<span className="text-accent">Ora</span>
+                </span>
               </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
-              </span>
             </Link>
             <Link href="/">
               <Button variant="ghost" size="sm">
@@ -56,17 +65,17 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold text-foreground mb-4">1. Acceptance of Terms</h2>
             <p className="text-foreground-muted leading-relaxed mb-4">
-              By accessing and using Socialora ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+              By accessing and using SocialOra ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
             </p>
             <p className="text-foreground-muted leading-relaxed">
-              These Terms of Service ("Terms") govern your access to and use of Socialora's Instagram DM automation platform. Please read these Terms carefully before using our Service.
+              These Terms of Service ("Terms") govern your access to and use of SocialOra's Instagram DM automation platform. Please read these Terms carefully before using our Service.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-semibold text-foreground mb-4">2. Description of Service</h2>
             <p className="text-foreground-muted leading-relaxed mb-4">
-              Socialora is a software-as-a-service platform that enables users to:
+              SocialOra is a software-as-a-service platform that enables users to:
             </p>
             <ul className="list-disc list-inside text-foreground-muted space-y-2 mb-4">
               <li>Manage Instagram direct messages through a unified inbox</li>
@@ -142,7 +151,7 @@ export default function TermsPage() {
             
             <h3 className="text-xl font-semibold text-foreground mb-3 mt-6">6.1 Our Rights</h3>
             <p className="text-foreground-muted leading-relaxed mb-4">
-              The Service and its original content, features, and functionality are owned by Socialora and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
+              The Service and its original content, features, and functionality are owned by SocialOra and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
             </p>
 
             <h3 className="text-xl font-semibold text-foreground mb-3 mt-6">6.2 Your Content</h3>
@@ -206,7 +215,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold text-foreground mb-4">10. Indemnification</h2>
             <p className="text-foreground-muted leading-relaxed">
-              You agree to indemnify and hold harmless Socialora, its officers, directors, employees, and agents from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from your use of the Service, violation of these Terms, or infringement of any rights of another.
+              You agree to indemnify and hold harmless SocialOra, its officers, directors, employees, and agents from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from your use of the Service, violation of these Terms, or infringement of any rights of another.
             </p>
           </section>
 
@@ -270,12 +279,18 @@ export default function TermsPage() {
       <footer className="border-t border-border bg-background-secondary mt-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+            <div className="flex items-center">
+              <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="SocialOra" 
+                  width={56} 
+                  height={56} 
+                  className="h-full w-full object-contain" 
+                />
               </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
+              <span className="font-bold text-xl">
+                Social<span className="text-accent">Ora</span>
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-foreground-muted">
@@ -284,7 +299,7 @@ export default function TermsPage() {
               <Link href="/support" className="hover:text-foreground transition-colors">Support</Link>
             </div>
             <p className="text-sm text-foreground-muted">
-              © 2025 Socialora. All rights reserved.
+              © 2025 SocialOra. All rights reserved.
             </p>
           </div>
         </div>

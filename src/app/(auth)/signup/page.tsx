@@ -110,7 +110,7 @@ export default function SignupPage() {
             We sent a confirmation link to <span className="text-foreground font-medium">{email}</span>
           </p>
           <p className="text-sm text-foreground-muted mb-8">
-            Click the link in the email to activate your account and start using Socialora.
+            Click the link in the email to activate your account and start using SocialOra.
           </p>
           <Link href="/login">
             <Button variant="secondary">Back to login</Button>
@@ -131,17 +131,17 @@ export default function SignupPage() {
         
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <div className="flex items-center">
-            <div className="h-20 w-20 flex items-center justify-center overflow-hidden">
+            <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
               <Image 
                 src="/images/logo.png" 
-                alt="Socialora" 
-                width={80} 
-                height={80} 
+                alt="SocialOra" 
+                width={56} 
+                height={56} 
                 className="h-full w-full object-contain" 
               />
             </div>
-            <span className="font-bold text-2xl tracking-tight">
-              Social<span className="text-accent">ora</span>
+            <span className="font-bold text-xl">
+              Social<span className="text-accent">Ora</span>
             </span>
           </div>
           
@@ -152,7 +152,7 @@ export default function SignupPage() {
               today
             </h1>
             <p className="text-lg text-foreground-muted mb-8">
-              Join thousands of creators and businesses who scale their Instagram outreach with Socialora.
+              Join thousands of creators and businesses who scale their Instagram outreach with SocialOra.
             </p>
             
             <div className="grid grid-cols-3 gap-6">
@@ -181,16 +181,20 @@ export default function SignupPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center mb-8 justify-center">
-            <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
-              <Image 
-                src="/images/logo.png" 
-                alt="Socialora" 
-                width={56} 
-                height={56} 
-                className="h-full w-full object-contain" 
-              />
+            <div className="flex items-center">
+              <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="SocialOra" 
+                  width={56} 
+                  height={56} 
+                  className="h-full w-full object-contain" 
+                />
+              </div>
+              <span className="font-bold text-xl">
+                Social<span className="text-accent">Ora</span>
+              </span>
             </div>
-            <span className="font-bold text-xl">DM<span className="text-accent">flow</span></span>
           </div>
           
           <div className="text-center mb-8">

@@ -1,15 +1,16 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Calendar, Clock, Instagram } from 'lucide-react';
+import { ArrowRight, Calendar, Clock } from 'lucide-react';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { BlogHeader } from './blog-header';
 
 export const metadata: Metadata = {
-  title: 'Blog - Instagram DM Automation & Cold DM Strategies | Socialora',
+  title: 'Blog - Instagram DM Automation & Cold DM Strategies | SocialOra',
   description: 'Learn about Instagram DM automation, cold DM strategies, Instagram automation tools, and how to scale your outreach. Expert guides on Instagram marketing automation.',
   keywords: ['Instagram DM automation', 'cold DM automation', 'Instagram automation', 'DM automation tools', 'Instagram marketing automation', 'automated Instagram messages', 'Instagram outreach automation'],
   openGraph: {
-    title: 'Blog - Instagram DM Automation & Cold DM Strategies | Socialora',
+    title: 'Blog - Instagram DM Automation & Cold DM Strategies | SocialOra',
     description: 'Expert guides on Instagram DM automation, cold DM strategies, and Instagram marketing automation.',
     type: 'website',
   },
@@ -138,7 +139,7 @@ export default function BlogPage() {
             Ready to Automate Your Instagram DMs?
           </h2>
           <p className="text-lg text-foreground-muted mb-8 max-w-2xl mx-auto">
-            Start using Socialora today and experience the power of AI-powered Instagram automation
+            Start using SocialOra today and experience the power of AI-powered Instagram automation
           </p>
           <Link href="/">
             <Button size="lg" className="group">
@@ -154,12 +155,20 @@ export default function BlogPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+              <div className="flex items-center">
+                <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                  <Image 
+                    src="/images/logo.png" 
+                    alt="SocialOra" 
+                    width={56} 
+                    height={56} 
+                    className="h-full w-full object-contain" 
+                  />
+                </div>
+                <span className="font-bold text-xl">
+                  Social<span className="text-accent">Ora</span>
+                </span>
               </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
-              </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-foreground-muted">
               <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
@@ -168,7 +177,7 @@ export default function BlogPage() {
               <Link href="/support" className="hover:text-foreground transition-colors">Support</Link>
             </div>
             <p className="text-sm text-foreground-muted">
-              © 2025 Socialora. All rights reserved.
+              © 2025 SocialOra. All rights reserved.
             </p>
           </div>
         </div>

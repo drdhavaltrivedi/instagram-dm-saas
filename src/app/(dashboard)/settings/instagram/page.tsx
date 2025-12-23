@@ -2,32 +2,31 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
-import { 
-  Instagram, 
-  Plus, 
-  Trash2, 
-  RefreshCw, 
-  CheckCircle, 
-  AlertCircle, 
-  ExternalLink,
-  X,
-  Copy,
-  Check,
-  Cookie,
-  Send,
-  MessageSquare,
-  Loader2
-} from 'lucide-react';
 import { Header } from '@/components/layout/header';
-import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
-import type { InstagramAccount } from '@/types';
+import { Button } from '@/components/ui/button';
 import { usePostHog } from '@/hooks/use-posthog';
+import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
+import type { InstagramAccount } from '@/types';
+import {
+    AlertCircle,
+    Check,
+    CheckCircle,
+    Cookie,
+    Copy,
+    ExternalLink,
+    Instagram,
+    Loader2,
+    Plus,
+    RefreshCw,
+    Send,
+    Trash2,
+    X
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID;
 const META_OAUTH_REDIRECT_URI = process.env.NEXT_PUBLIC_META_OAUTH_REDIRECT_URI || `${typeof window !== 'undefined' ? window.location.origin : ''}/api/instagram/callback`;
@@ -666,7 +665,7 @@ export default function InstagramSettingsPage() {
     // Open Instagram in a new tab and show instructions to use the extension
     window.open('https://www.instagram.com/', '_blank');
     toast.info('Reconnect Instructions', {
-      description: `To reconnect @${account.igUsername}:\n\n1. Make sure you're logged in to @${account.igUsername} on Instagram\n2. Click the Socialora extension icon\n3. Click "Grab Instagram Session"\n\nYour cookies will be updated automatically.`,
+      description: `To reconnect @${account.igUsername}:\n\n1. Make sure you're logged in to @${account.igUsername} on Instagram\n2. Click the SocialOra extension icon\n3. Click "Grab Instagram Session"\n\nYour cookies will be updated automatically.`,
       duration: 8000,
     });
   };
@@ -1590,7 +1589,7 @@ export default function InstagramSettingsPage() {
                 <div className="flex-1">
                   <h3 className="font-medium text-foreground mb-1">Click Extension → Grab Session</h3>
                   <p className="text-sm text-foreground-muted">
-                    While on Instagram, click the Socialora extension icon and hit &quot;Grab Instagram Session&quot;. 
+                    While on Instagram, click the SocialOra extension icon and hit &quot;Grab Instagram Session&quot;. 
                     Your account connects automatically! 🎉
                   </p>
                 </div>

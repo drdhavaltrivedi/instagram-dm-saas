@@ -5,16 +5,16 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import type { User } from '@supabase/supabase-js';
 import {
-    BarChart3,
-    ChevronDown,
-    ChevronRight,
-    Inbox,
-    Instagram,
-    LogOut,
-    Send,
-    Settings,
-    Sparkles,
-    Target,
+  BarChart3,
+  ChevronDown,
+  ChevronRight,
+  Inbox,
+  Instagram,
+  LogOut,
+  Send,
+  Settings,
+  Sparkles,
+  Target,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -96,18 +96,20 @@ export function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-border">
         <Link href="/" className="flex items-center group">
-            <div className="h-11 w-11 flex items-center justify-center overflow-hidden">
-              <Image 
-                src="/images/logo.png" 
-                alt="Socialora" 
-                width={44} 
-                height={44} 
-                className="h-full w-full object-contain" 
-              />
+            <div className="flex items-center">
+              <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="SocialOra" 
+                  width={56} 
+                  height={56} 
+                  className="h-full w-full object-contain" 
+                />
+              </div>
+              <span className="font-bold text-xl">
+                Social<span className="text-accent">Ora</span>
+              </span>
             </div>
-          <span className="font-semibold text-lg tracking-tight">
-            Social<span className="text-accent">ora</span>
-          </span>
         </Link>
       </div>
 

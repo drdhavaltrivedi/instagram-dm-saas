@@ -1,22 +1,23 @@
 import { Button } from '@/components/ui/button';
-import { Book, FileText, HelpCircle, Instagram, Mail, Search, Users, Video } from 'lucide-react';
+import { Book, FileText, HelpCircle, Mail, Search, Users, Video } from 'lucide-react';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { SupportHeader } from './support-header';
 
 export const metadata: Metadata = {
-  title: 'Support - Instagram DM Automation Help Center | Socialora',
-  description: 'Get help with Instagram DM automation. Find answers to FAQs, contact support, access tutorials, and learn how to use Socialora effectively.',
+  title: 'Support - Instagram DM Automation Help Center | SocialOra',
+  description: 'Get help with Instagram DM automation. Find answers to FAQs, contact support, access tutorials, and learn how to use SocialOra effectively.',
   keywords: [
     'Instagram DM automation support',
     'Instagram automation help',
-    'Socialora support',
+    'SocialOra support',
     'Instagram automation FAQ',
     'Instagram DM automation customer service',
     'Instagram automation troubleshooting',
   ],
   openGraph: {
-    title: 'Support - Instagram DM Automation Help Center | Socialora',
+    title: 'Support - Instagram DM Automation Help Center | SocialOra',
     description: 'Get help with Instagram DM automation. Find answers to FAQs, contact support, and access tutorials.',
     type: 'website',
   },
@@ -29,7 +30,7 @@ export default function SupportPage() {
   const faqs = [
     {
       question: "How do I connect my Instagram account?",
-      answer: "You can connect your Instagram account in three ways: 1) Use our Direct Login feature (recommended) - just click 'Connect with Direct Login' and follow the prompts. 2) Use the Socialora Chrome Extension - install the extension, go to Instagram, and click 'Grab Instagram Session'. 3) Manually enter your cookies in Settings > Instagram Accounts."
+      answer: "You can connect your Instagram account in three ways: 1) Use our Direct Login feature (recommended) - just click 'Connect with Direct Login' and follow the prompts. 2) Use the SocialOra Chrome Extension - install the extension, go to Instagram, and click 'Grab Instagram Session'. 3) Manually enter your cookies in Settings > Instagram Accounts."
     },
     {
       question: "Is my Instagram account safe?",
@@ -37,7 +38,7 @@ export default function SupportPage() {
     },
     {
       question: "Can I use multiple Instagram accounts?",
-      answer: "Absolutely! You can connect multiple Instagram accounts to your Socialora workspace. Each account is managed separately, and you can switch between them easily from the Settings page."
+      answer: "Absolutely! You can connect multiple Instagram accounts to your SocialOra workspace. Each account is managed separately, and you can switch between them easily from the Settings page."
     },
     {
       question: "How does the AI automation work?",
@@ -53,7 +54,7 @@ export default function SupportPage() {
     },
     {
       question: "What happens if my Instagram account gets suspended?",
-      answer: "If your Instagram account is suspended, you'll need to resolve the issue with Instagram directly. Once resolved, you can reconnect your account to Socialora. We recommend following Instagram's Community Guidelines and using our rate limiting features to prevent suspensions."
+      answer: "If your Instagram account is suspended, you'll need to resolve the issue with Instagram directly. Once resolved, you can reconnect your account to SocialOra. We recommend following Instagram's Community Guidelines and using our rate limiting features to prevent suspensions."
     },
     {
       question: "How do I export my data?",
@@ -67,7 +68,7 @@ export default function SupportPage() {
       title: "Email Support",
       description: "Get help via email",
       action: "Send us an email",
-      href: "mailto:dhaval.m@brilworks.com?cc=digital@socialora.com&subject=Socialora Support Request"
+      href: "mailto:dhaval.m@brilworks.com?cc=digital@socialora.com&subject=SocialOra Support Request"
     },
     {
       icon: Book,
@@ -177,7 +178,7 @@ export default function SupportPage() {
               </div>
             </Link>
             <a
-              href="mailto:dhaval.m@brilworks.com?cc=digital@socialora.com&subject=Socialora Support Request"
+              href="mailto:dhaval.m@brilworks.com?cc=digital@socialora.com&subject=SocialOra Support Request"
               className="group">
               <Button
                 size="lg"
@@ -226,7 +227,7 @@ export default function SupportPage() {
               get back to you as soon as possible.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a href="mailto:dhaval.m@brilworks.com?cc=digital@socialora.com&subject=Socialora Support Request">
+              <a href="mailto:dhaval.m@brilworks.com?cc=digital@socialora.com&subject=SocialOra Support Request">
                 <Button size="lg">
                   <Mail className="h-5 w-5 mr-2" />
                   Email Support
@@ -246,12 +247,18 @@ export default function SupportPage() {
       <footer className="border-t border-border bg-background-secondary mt-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+            <div className="flex items-center">
+              <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="SocialOra" 
+                  width={56} 
+                  height={56} 
+                  className="h-full w-full object-contain" 
+                />
               </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
+              <span className="font-bold text-xl">
+                Social<span className="text-accent">Ora</span>
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-foreground-muted">
@@ -272,7 +279,7 @@ export default function SupportPage() {
               </Link>
             </div>
             <p className="text-sm text-foreground-muted">
-              © 2025 Socialora. All rights reserved.
+              © 2025 SocialOra. All rights reserved.
             </p>
           </div>
         </div>

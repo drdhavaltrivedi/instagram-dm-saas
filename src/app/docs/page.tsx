@@ -1,7 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { AlertCircle, ArrowLeft, ArrowRight, BarChart3, Book, Bot, CheckCircle, HelpCircle, Instagram, Menu, MessageSquare, Send, Settings, Shield, Target, X, Zap } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, BarChart3, Book, Bot, CheckCircle, HelpCircle, Menu, MessageSquare, Send, Settings, Shield, Target, X, Zap } from 'lucide-react';
+import NextImage from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -50,12 +51,20 @@ export default function DocsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+              <div className="flex items-center">
+                <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                  <NextImage 
+                    src="/images/logo.png" 
+                    alt="SocialOra" 
+                    width={56} 
+                    height={56} 
+                    className="h-full w-full object-contain" 
+                  />
+                </div>
+                <span className="font-bold text-xl">
+                  Social<span className="text-accent">Ora</span>
+                </span>
               </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
-              </span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -149,9 +158,9 @@ export default function DocsPage() {
           <main className="lg:col-span-3">
             {/* Hero Section */}
             <div className="mb-12">
-              <h1 className="text-4xl font-bold text-foreground mb-4">Socialora Documentation</h1>
+              <h1 className="text-4xl font-bold text-foreground mb-4">SocialOra Documentation</h1>
               <p className="text-xl text-foreground-muted">
-                Complete guide to using Socialora for Instagram DM automation and management
+                Complete guide to using SocialOra for Instagram DM automation and management
               </p>
             </div>
 
@@ -164,13 +173,13 @@ export default function DocsPage() {
 
               <div className="prose prose-invert max-w-none">
                 <p className="text-foreground-muted leading-relaxed mb-6">
-                  Welcome to Socialora! This guide will help you get started with automating and managing your Instagram direct messages.
+                  Welcome to SocialOra! This guide will help you get started with automating and managing your Instagram direct messages.
                 </p>
 
                 <div className="bg-background-elevated rounded-xl p-6 border border-border mb-6">
-                  <h3 className="text-xl font-semibold text-foreground mb-4">What is Socialora?</h3>
+                  <h3 className="text-xl font-semibold text-foreground mb-4">What is SocialOra?</h3>
                   <p className="text-foreground-muted leading-relaxed mb-4">
-                    Socialora is an all-in-one platform for managing Instagram direct messages. It helps you:
+                    SocialOra is an all-in-one platform for managing Instagram direct messages. It helps you:
                   </p>
                   <ul className="list-disc list-inside text-foreground-muted space-y-2">
                     <li>Manage all Instagram DMs from a unified inbox</li>
@@ -196,7 +205,7 @@ export default function DocsPage() {
 
                 <h3 className="text-2xl font-semibold text-foreground mb-4 mt-8">Step 2: Connect Your Instagram Account</h3>
                 <p className="text-foreground-muted leading-relaxed mb-4">
-                  Before you can start using Socialora, you need to connect at least one Instagram account. See the <a href="#connect-instagram" className="text-accent hover:underline">Connect Instagram</a> section for detailed instructions.
+                  Before you can start using SocialOra, you need to connect at least one Instagram account. See the <a href="#connect-instagram" className="text-accent hover:underline">Connect Instagram</a> section for detailed instructions.
                 </p>
 
                 <div className="bg-gradient-to-br from-accent/10 via-pink-500/10 to-accent/10 rounded-xl p-6 border border-border">
@@ -222,7 +231,7 @@ export default function DocsPage() {
 
               <div className="prose prose-invert max-w-none">
                 <p className="text-foreground-muted leading-relaxed mb-6">
-                  There are three ways to connect your Instagram account to Socialora. Choose the method that works best for you.
+                  There are three ways to connect your Instagram account to SocialOra. Choose the method that works best for you.
                 </p>
 
                 <div className="space-y-6 mb-8">
@@ -233,7 +242,7 @@ export default function DocsPage() {
                       <h3 className="text-xl font-semibold text-foreground">Direct Login (Recommended)</h3>
                     </div>
                     <p className="text-foreground-muted leading-relaxed mb-4">
-                      The easiest and most secure method. Socialora will open a browser window for you to log in directly to Instagram.
+                      The easiest and most secure method. SocialOra will open a browser window for you to log in directly to Instagram.
                     </p>
                     <ol className="list-decimal list-inside space-y-2 text-foreground-muted mb-4">
                       <li>Go to <strong className="text-foreground">Settings → Instagram Accounts</strong></li>
@@ -264,11 +273,11 @@ export default function DocsPage() {
                       Use our Chrome extension for one-click Instagram account connection.
                     </p>
                     <ol className="list-decimal list-inside space-y-2 text-foreground-muted mb-4">
-                      <li>Install the Socialora Chrome Extension (if not already installed)</li>
+                      <li>Install the SocialOra Chrome Extension (if not already installed)</li>
                       <li>Go to <strong className="text-foreground">Settings → Instagram Accounts</strong></li>
                       <li>Click <strong className="text-foreground">"Connect with Extension"</strong></li>
                       <li>Open Instagram in a new tab and log in</li>
-                      <li>Click the Socialora extension icon in your browser</li>
+                      <li>Click the SocialOra extension icon in your browser</li>
                       <li>Click <strong className="text-foreground">"Grab Instagram Session"</strong></li>
                       <li>Your account will connect automatically!</li>
                     </ol>
@@ -278,7 +287,7 @@ export default function DocsPage() {
                         <div>
                           <p className="text-sm font-medium text-foreground mb-1">Secure & Private</p>
                           <p className="text-sm text-foreground-muted">
-                            The extension only extracts session cookies needed for authentication. All data is encrypted and stored securely in your Socialora account.
+                            The extension only extracts session cookies needed for authentication. All data is encrypted and stored securely in your SocialOra account.
                           </p>
                         </div>
                       </div>
@@ -301,7 +310,7 @@ export default function DocsPage() {
                       <li>Open browser Developer Tools (F12)</li>
                       <li>Go to <strong className="text-foreground">Application → Cookies → instagram.com</strong></li>
                       <li>Copy the values for: <code className="bg-background-secondary px-2 py-1 rounded">sessionid</code>, <code className="bg-background-secondary px-2 py-1 rounded">csrftoken</code>, and <code className="bg-background-secondary px-2 py-1 rounded">ds_user_id</code></li>
-                      <li>Paste them into Socialora and click <strong className="text-foreground">"Connect"</strong></li>
+                      <li>Paste them into SocialOra and click <strong className="text-foreground">"Connect"</strong></li>
                     </ol>
                     <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
                       <div className="flex items-start gap-3">
@@ -319,7 +328,7 @@ export default function DocsPage() {
 
                 <h3 className="text-2xl font-semibold text-foreground mb-4 mt-8">Managing Multiple Accounts</h3>
                 <p className="text-foreground-muted leading-relaxed mb-4">
-                  You can connect multiple Instagram accounts to your Socialora workspace. Each account is managed separately:
+                  You can connect multiple Instagram accounts to your SocialOra workspace. Each account is managed separately:
                 </p>
                 <ul className="list-disc list-inside space-y-2 text-foreground-muted mb-6">
                   <li>Switch between accounts from the Settings page</li>
@@ -454,7 +463,7 @@ export default function DocsPage() {
                       <div>
                         <h4 className="font-semibold text-foreground mb-1">Respect Rate Limits</h4>
                         <p className="text-sm text-foreground-muted">
-                          Don't send too many messages too quickly. Socialora automatically respects Instagram's rate limits to protect your account.
+                          Don't send too many messages too quickly. SocialOra automatically respects Instagram's rate limits to protect your account.
                         </p>
                       </div>
                     </div>
@@ -713,12 +722,20 @@ export default function DocsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-                <Instagram className="h-4 w-4 text-white" />
+              <div className="flex items-center">
+                <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                  <NextImage 
+                    src="/images/logo.png" 
+                    alt="SocialOra" 
+                    width={56} 
+                    height={56} 
+                    className="h-full w-full object-contain" 
+                  />
+                </div>
+                <span className="font-bold text-xl">
+                  Social<span className="text-accent">Ora</span>
+                </span>
               </div>
-              <span className="font-bold text-lg">
-                Social<span className="text-accent">ora</span>
-              </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-foreground-muted">
               <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
@@ -727,7 +744,7 @@ export default function DocsPage() {
               <Link href="/docs" className="hover:text-foreground transition-colors">Docs</Link>
             </div>
             <p className="text-sm text-foreground-muted">
-              © 2025 Socialora. All rights reserved.
+              © 2025 SocialOra. All rights reserved.
             </p>
           </div>
         </div>
