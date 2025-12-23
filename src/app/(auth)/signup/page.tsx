@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Instagram, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { Instagram, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
@@ -18,6 +18,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,11 +242,25 @@ export default function SignupPage() {
             
             <Input
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               leftIcon={<Lock className="h-4 w-4" />}
+              rightIcon={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-foreground-subtle hover:text-foreground transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              }
               required
             />
             

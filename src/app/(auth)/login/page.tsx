@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Instagram, Mail, Lock, ArrowRight, Sparkles, AlertCircle, CheckCircle } from 'lucide-react';
+import { Instagram, Mail, Lock, ArrowRight, Sparkles, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ export default function LoginPage() {
   const [loginMethod, setLoginMethod] = useState<'password' | 'magic'>('password');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     // Check for password reset success message
@@ -350,11 +351,25 @@ export default function LoginPage() {
                 id="password"
                 name="password"
                 label="Password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 leftIcon={<Lock className="h-4 w-4" />}
+                rightIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-foreground-subtle hover:text-foreground transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                }
                 autoComplete="current-password"
                 required
               />
