@@ -14,14 +14,14 @@ export function EMVCalculator() {
       id: 'follower-count',
       label: 'Follower Count',
       placeholder: 'Enter your follower count',
-      type: 'number',
+      type: 'number' as const,
       required: true,
     },
     {
       id: 'engagement-rate',
       label: 'Engagement Rate (%)',
       placeholder: 'e.g., 3.5',
-      type: 'number',
+      type: 'number' as const,
       required: true,
     },
   ];
