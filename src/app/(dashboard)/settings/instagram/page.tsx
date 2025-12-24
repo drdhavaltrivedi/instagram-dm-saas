@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/header';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { usePostHog } from '@/hooks/use-posthog';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -90,6 +91,12 @@ export default function InstagramSettingsPage() {
     success: boolean;
     error?: string;
   } | null>(null);
+
+  // Disconnect confirmation dialog state
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+  const [accountToDisconnect, setAccountToDisconnect] = useState<string | null>(
+    null
+  );
 
   // Track which accounts have been saved in this session to prevent duplicate saves
   const savedAccountsRef = useRef<Set<string>>(new Set());
@@ -714,16 +721,35 @@ export default function InstagramSettingsPage() {
     window.location.href = authUrl.toString();
   };
 
-  const handleDisconnect = async (accountId: string) => {
-    if (!confirm("Are you sure you want to disconnect this account?")) return;
+  const handleDisconnect = (accountId: string) => {
+    setAccountToDisconnect(accountId);
+    setShowDisconnectConfirm(true);
+  };
+
+  const confirmDisconnect = async () => {
+    if (!accountToDisconnect) return;
 
     try {
       const supabase = createClient();
-      await supabase.from("instagram_accounts").delete().eq("id", accountId);
+      await supabase
+        .from("instagram_accounts")
+        .delete()
+        .eq("id", accountToDisconnect);
 
-      setAccounts((prev) => prev.filter((a) => a.id !== accountId));
+      setAccounts((prev) => prev.filter((a) => a.id !== accountToDisconnect));
+      toast.success("Account disconnected", {
+        description:
+          "The Instagram account has been successfully disconnected.",
+      });
     } catch (error) {
       console.error("Error disconnecting account:", error);
+      toast.error("Failed to disconnect", {
+        description:
+          "There was an error disconnecting the account. Please try again.",
+      });
+    } finally {
+      setAccountToDisconnect(null);
+      setShowDisconnectConfirm(false);
     }
   };
 
@@ -2116,6 +2142,18 @@ export default function InstagramSettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Disconnect Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDisconnectConfirm}
+        onOpenChange={setShowDisconnectConfirm}
+        onConfirm={confirmDisconnect}
+        title="Disconnect Account"
+        description="Are you sure you want to disconnect this Instagram account? This action cannot be undone and you'll need to reconnect to use this account again."
+        confirmText="Disconnect"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }
