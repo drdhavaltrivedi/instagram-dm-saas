@@ -79,39 +79,41 @@ const userInfo = document.getElementById('user-info');
 const userAvatar = document.getElementById('user-avatar');
 const userFullname = document.getElementById('user-fullname');
 const userUsername = document.getElementById('user-username');
-const instructions = document.getElementById('instructions');
+const instructions = document.getElementById("instructions");
+const messagesTodayEl = document.getElementById("messages-today");
+const totalMessagesEl = document.getElementById("total-messages");
 
-const statusNotInstagram = document.getElementById('status-not-instagram');
-const statusNotLoggedIn = document.getElementById('status-not-logged-in');
-const statusSuccess = document.getElementById('status-success');
-const statusError = document.getElementById('status-error');
-const statusConnecting = document.getElementById('status-connecting');
-const errorMessage = document.getElementById('error-message');
+const statusNotInstagram = document.getElementById("status-not-instagram");
+const statusNotLoggedIn = document.getElementById("status-not-logged-in");
+const statusSuccess = document.getElementById("status-success");
+const statusError = document.getElementById("status-error");
+const statusConnecting = document.getElementById("status-connecting");
+const errorMessage = document.getElementById("error-message");
 
 // Consent dialog
-const consentDialog = document.getElementById('consent-dialog');
-const consentAccept = document.getElementById('consent-accept');
-const consentDecline = document.getElementById('consent-decline');
+const consentDialog = document.getElementById("consent-dialog");
+const consentAccept = document.getElementById("consent-accept");
+const consentDecline = document.getElementById("consent-decline");
 
 // ---------------------------------------------------------------------------
 // UI helpers & state
 // ---------------------------------------------------------------------------
 
-const STATE_IDLE = 'idle';
-const STATE_CONNECTING = 'connecting';
-const STATE_CONNECTED = 'connected';
+const STATE_IDLE = "idle";
+const STATE_CONNECTING = "connecting";
+const STATE_CONNECTED = "connected";
 
 function hideAllStatus() {
-  statusNotInstagram.classList.add('hidden');
-  statusNotLoggedIn.classList.add('hidden');
-  statusSuccess.classList.add('hidden');
-  statusError.classList.add('hidden');
-  statusConnecting.classList.add('hidden');
+  statusNotInstagram.classList.add("hidden");
+  statusNotLoggedIn.classList.add("hidden");
+  statusSuccess.classList.add("hidden");
+  statusError.classList.add("hidden");
+  statusConnecting.classList.add("hidden");
 }
 
 function showStatus(element) {
   hideAllStatus();
-  element.classList.remove('hidden');
+  element.classList.remove("hidden");
 }
 
 function setButtonsDisabled(disabled) {
@@ -123,35 +125,37 @@ function applyStateToUI(state, user, error) {
   hideAllStatus();
 
   if (state === STATE_IDLE) {
-    grabBtn.classList.remove('hidden');
-    if (stopBtn) stopBtn.classList.add('hidden');
-    grabBtn.textContent = '🔗 Start Instagram Connection';
+    grabBtn.classList.remove("hidden");
+    if (stopBtn) stopBtn.classList.add("hidden");
+    grabBtn.textContent = "PRESS TO START";
     setButtonsDisabled(false);
-    instructions.classList.remove('hidden');
-    userInfo.classList.add('hidden');
-    openAppBtn.classList.add('hidden');
+    instructions.classList.add("hidden");
+    userInfo.classList.add("hidden");
+    openAppBtn.classList.add("hidden");
   } else if (state === STATE_CONNECTING) {
-    grabBtn.classList.add('hidden');
-    if (stopBtn) stopBtn.classList.remove('hidden');
+    grabBtn.classList.add("hidden");
+    if (stopBtn) stopBtn.classList.remove("hidden");
+    stopBtn.textContent = "PRESS TO STOP";
     setButtonsDisabled(false);
     showStatus(statusConnecting);
-    instructions.classList.remove('hidden');
+    instructions.classList.add("hidden");
   } else if (state === STATE_CONNECTED) {
-    grabBtn.classList.remove('hidden');
-    if (stopBtn) stopBtn.classList.add('hidden');
-    grabBtn.textContent = '✅ Connected (Reconnect)';
+    grabBtn.classList.remove("hidden");
+    if (stopBtn) stopBtn.classList.add("hidden");
+    grabBtn.textContent = "✅ Connected (Reconnect)";
     setButtonsDisabled(false);
-    instructions.classList.add('hidden');
-    openAppBtn.classList.remove('hidden');
+    instructions.classList.add("hidden");
+    openAppBtn.classList.remove("hidden");
 
     if (user) {
-      userInfo.classList.remove('hidden');
+      userInfo.classList.remove("hidden");
       userFullname.textContent = user.fullName || user.username;
       userUsername.textContent = `@${user.username}`;
       if (user.profilePicUrl) {
-        userAvatar.innerHTML = `<img src="${user.profilePicUrl}" alt="${user.username}">`;
+        // Use proxy endpoint to avoid CORS issues with Instagram images
+        loadProfilePicture(user.profilePicUrl, user.username);
       } else {
-        userAvatar.textContent = user.username.charAt(0).toUpperCase();
+        userAvatar.textContent = getInitials(user.fullName || user.username);
       }
     }
     showStatus(statusSuccess);
@@ -165,12 +169,22 @@ function applyStateToUI(state, user, error) {
 
 function loadStateAndRender() {
   chrome.storage.local.get(
-    ['socialora_connection_state', 'socialora_connected_user'],
+    ["socialora_connection_state", "socialora_connected_user"],
     (result) => {
       const state = result.socialora_connection_state || STATE_IDLE;
       const user = result.socialora_connected_user || null;
       applyStateToUI(state, user, null);
-    },
+
+      // Load profile picture if user is connected
+      if (user && user.profilePicUrl) {
+        loadProfilePicture(user.profilePicUrl, user.username);
+      } else if (user) {
+        // Show initials if no profile picture
+        if (userAvatar) {
+          userAvatar.textContent = getInitials(user.fullName || user.username);
+        }
+      }
+    }
   );
 }
 
@@ -192,19 +206,19 @@ function showConsentDialog() {
     }
 
     // Make sure dialog is actually visible (override .hidden class)
-    consentDialog.classList.remove('hidden');
-    consentDialog.style.display = 'flex';
+    consentDialog.classList.remove("hidden");
+    consentDialog.style.display = "flex";
 
     consentAccept.onclick = async () => {
       await saveConsent();
-      consentDialog.style.display = 'none';
-      consentDialog.classList.add('hidden');
+      consentDialog.style.display = "none";
+      consentDialog.classList.add("hidden");
       resolve(true);
     };
 
     consentDecline.onclick = () => {
-      consentDialog.style.display = 'none';
-      consentDialog.classList.add('hidden');
+      consentDialog.style.display = "none";
+      consentDialog.classList.add("hidden");
       resolve(false);
     };
   });
@@ -212,7 +226,7 @@ function showConsentDialog() {
 
 async function ensureConsent() {
   const result = await new Promise((resolve) => {
-    chrome.storage.local.get(['socialora_consent'], (data) => {
+    chrome.storage.local.get(["socialora_consent"], (data) => {
       resolve(data.socialora_consent === true);
     });
   });
@@ -231,14 +245,18 @@ async function startConnection() {
   setButtonsDisabled(true);
   applyStateToUI(STATE_CONNECTING, null, null);
 
-  chrome.runtime.sendMessage({ type: 'START_CONNECTION' }, (response) => {
+  chrome.runtime.sendMessage({ type: "START_CONNECTION" }, (response) => {
     setButtonsDisabled(false);
     if (chrome.runtime.lastError) {
       applyStateToUI(STATE_IDLE, null, chrome.runtime.lastError.message);
       return;
     }
     if (!response || !response.success) {
-      applyStateToUI(STATE_IDLE, null, response?.error || 'Failed to start Instagram connection');
+      applyStateToUI(
+        STATE_IDLE,
+        null,
+        response?.error || "Failed to start Instagram connection"
+      );
       return;
     }
     chrome.storage.local.set({ socialora_connection_state: STATE_CONNECTING });
@@ -248,7 +266,7 @@ async function startConnection() {
 
 function stopConnection() {
   setButtonsDisabled(true);
-  chrome.runtime.sendMessage({ type: 'STOP_CONNECTION' }, (response) => {
+  chrome.runtime.sendMessage({ type: "STOP_CONNECTION" }, (response) => {
     setButtonsDisabled(false);
     if (chrome.runtime.lastError) {
       applyStateToUI(STATE_IDLE, null, chrome.runtime.lastError.message);
@@ -263,17 +281,21 @@ function stopConnection() {
       },
       () => {
         applyStateToUI(state, user, response?.error || null);
-      },
+      }
     );
   });
 }
 
 // Background pushes connection updates as it progresses
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === 'CONNECTION_STATUS') {
-    applyStateToUI(message.state || STATE_IDLE, message.user || null, message.error || null);
+  if (message.type === "CONNECTION_STATUS") {
+    applyStateToUI(
+      message.state || STATE_IDLE,
+      message.user || null,
+      message.error || null
+    );
   }
-  if (message.type === 'CONNECTION_COMPLETE') {
+  if (message.type === "CONNECTION_COMPLETE") {
     const user = message.user || null;
     chrome.storage.local.set(
       {
@@ -282,7 +304,17 @@ chrome.runtime.onMessage.addListener((message) => {
       },
       () => {
         applyStateToUI(STATE_CONNECTED, user, null);
-      },
+        // Load profile picture after connection
+        if (user && user.profilePicUrl) {
+          loadProfilePicture(user.profilePicUrl, user.username);
+        } else if (user) {
+          if (userAvatar) {
+            userAvatar.textContent = getInitials(
+              user.fullName || user.username
+            );
+          }
+        }
+      }
     );
   }
 });
@@ -292,19 +324,166 @@ chrome.runtime.onMessage.addListener((message) => {
 // ---------------------------------------------------------------------------
 
 if (grabBtn) {
-  grabBtn.addEventListener('click', startConnection);
+  grabBtn.addEventListener("click", startConnection);
 }
 if (stopBtn) {
-  stopBtn.addEventListener('click', stopConnection);
+  stopBtn.addEventListener("click", stopConnection);
 }
 
 if (openAppBtn) {
-  openAppBtn.addEventListener('click', async () => {
+  openAppBtn.addEventListener("click", async () => {
     const config = await CONFIG.getCurrent();
-    const cleanAppUrl = config.APP_URL.replace(/\/+$/, '');
+    const cleanAppUrl = config.APP_URL.replace(/\/+$/, "");
     chrome.tabs.create({ url: `${cleanAppUrl}/settings/instagram` });
     window.close();
   });
+}
+
+// ---------------------------------------------------------------------------
+// Statistics fetching
+// ---------------------------------------------------------------------------
+
+async function fetchStatistics() {
+  try {
+    // Get connected Instagram account cookies
+    const storageData = await new Promise((resolve) => {
+      chrome.storage.local.get(null, resolve);
+    });
+
+    // Find the most recent connected account
+    let cookies = null;
+    let userId = null;
+
+    // Check for connected user first
+    if (storageData.socialora_connected_user) {
+      userId =
+        storageData.socialora_connected_user.pk ||
+        storageData.socialora_connected_user.id;
+      const storageKey = `socialora_cookies_${userId}`;
+      cookies = storageData[storageKey];
+    }
+
+    // If no connected user, try to find any stored cookies
+    if (!cookies) {
+      for (const key in storageData) {
+        if (key.startsWith("socialora_cookies_")) {
+          cookies = storageData[key];
+          userId = key.replace("socialora_cookies_", "");
+          break;
+        }
+      }
+    }
+
+    if (!cookies || !cookies.sessionId || !cookies.dsUserId) {
+      // No cookies available, show 0
+      updateStatisticsDisplay(0, 0);
+      return;
+    }
+
+    // Get config for API URL
+    const config = await CONFIG.getCurrent();
+    const apiUrl = `${config.BACKEND_URL}/api/extension/stats`;
+
+    // Fetch statistics
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ cookies }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.success) {
+      updateStatisticsDisplay(data.messagesToday || 0, data.totalMessages || 0);
+    } else {
+      // API returned error, show 0
+      updateStatisticsDisplay(0, 0);
+    }
+  } catch (error) {
+    console.error("Failed to fetch statistics:", error);
+    // On error, show 0
+    updateStatisticsDisplay(0, 0);
+  }
+}
+
+function updateStatisticsDisplay(messagesToday, totalMessages) {
+  if (messagesTodayEl) {
+    messagesTodayEl.textContent = messagesToday.toString();
+  }
+  if (totalMessagesEl) {
+    totalMessagesEl.textContent = totalMessages.toString();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Profile picture loading with proxy
+// ---------------------------------------------------------------------------
+
+async function loadProfilePicture(profilePicUrl, username) {
+  if (!userAvatar || !profilePicUrl) return;
+
+  // Check if it's an Instagram CDN URL
+  const isInstagramUrl =
+    profilePicUrl.includes("instagram.com") ||
+    profilePicUrl.includes("cdninstagram.com") ||
+    profilePicUrl.includes("fbcdn.net");
+
+  let imageUrl = profilePicUrl;
+
+  // Use proxy for Instagram images to avoid CORS issues
+  if (isInstagramUrl) {
+    try {
+      const config = await CONFIG.getCurrent();
+      imageUrl = `${
+        config.BACKEND_URL
+      }/api/instagram/image-proxy?url=${encodeURIComponent(profilePicUrl)}`;
+    } catch (error) {
+      console.error("Failed to get config for image proxy:", error);
+      // Fall back to direct URL
+    }
+  }
+
+  // Create image element with error handling
+  const img = document.createElement("img");
+  img.src = imageUrl;
+  img.alt = username;
+  img.style.width = "100%";
+  img.style.height = "100%";
+  img.style.borderRadius = "50%";
+  img.style.objectFit = "cover";
+
+  img.onerror = () => {
+    // If image fails to load, show initials
+    userAvatar.innerHTML = "";
+    userAvatar.textContent = getInitials(username);
+  };
+
+  img.onload = () => {
+    // Image loaded successfully, ensure it's displayed
+    if (userAvatar.firstChild !== img) {
+      userAvatar.innerHTML = "";
+      userAvatar.appendChild(img);
+    }
+  };
+
+  // Clear and set the image element
+  userAvatar.innerHTML = "";
+  userAvatar.appendChild(img);
+}
+
+function getInitials(name) {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.charAt(0).toUpperCase();
 }
 
 // ---------------------------------------------------------------------------
@@ -312,5 +491,11 @@ if (openAppBtn) {
 // ---------------------------------------------------------------------------
 
 loadStateAndRender();
+fetchStatistics();
+
+// Refresh statistics periodically (every 30 seconds)
+setInterval(() => {
+  fetchStatistics();
+}, 30000);
 
 

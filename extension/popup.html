@@ -10,11 +10,33 @@
     }
     
     body {
-      width: 320px;
+      width: 360px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      color: #fff;
-      padding: 20px;
+      background: #0a0a0b;
+      color: #fafafa;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 520px;
+    }
+    
+    .top-header {
+      background: #111113;
+      color: #fafafa;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-bottom: 1px solid #27272a;
+    }
+    
+    .top-header-title {
+      font-size: 18px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #fafafa 0%, #ec4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
     
     .header {
@@ -22,6 +44,7 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 20px;
+      padding: 20px 20px 0;
     }
     
     .logo {
@@ -46,37 +69,38 @@
     }
     
     .status {
-      padding: 12px;
-      border-radius: 8px;
+      padding: 12px 16px;
+      border-radius: 12px;
       margin-bottom: 16px;
       font-size: 13px;
       display: flex;
       align-items: center;
       gap: 8px;
+      border: 1px solid;
     }
     
     .status.success {
-      background: rgba(34, 197, 94, 0.2);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      color: #22c55e;
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.2);
+      color: #10b981;
     }
     
     .status.error {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.2);
       color: #ef4444;
     }
     
     .status.warning {
-      background: rgba(234, 179, 8, 0.2);
-      border: 1px solid rgba(234, 179, 8, 0.3);
-      color: #eab308;
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
     }
     
     .status.info {
-      background: rgba(59, 130, 246, 0.2);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      color: #3b82f6;
+      background: rgba(236, 72, 153, 0.1);
+      border-color: rgba(236, 72, 153, 0.2);
+      color: #ec4899;
     }
     
     .hidden {
@@ -87,9 +111,10 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
+      padding: 16px;
+      background: #111113;
+      border: 1px solid #27272a;
+      border-radius: 12px;
       margin-bottom: 16px;
     }
     
@@ -122,7 +147,7 @@
     }
     
     .user-username {
-      color: #888;
+      color: #a1a1aa;
       font-size: 12px;
     }
     
@@ -159,20 +184,22 @@
     }
     
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
+      background: #111113;
+      border: 1px solid #27272a;
+      color: #fafafa;
       margin-top: 10px;
     }
     
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: #18181b;
+      border-color: #3f3f46;
     }
     
     .spinner {
       width: 16px;
       height: 16px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
+      border: 2px solid rgba(236, 72, 153, 0.2);
+      border-top-color: #ec4899;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -184,21 +211,23 @@
     .instructions {
       margin-top: 16px;
       padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid #27272a;
     }
     
     .instructions h3 {
-      font-size: 12px;
-      color: #888;
+      font-size: 11px;
+      color: #a1a1aa;
       margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      font-weight: 600;
     }
     
     .instructions ol {
       font-size: 12px;
-      color: #aaa;
-      padding-left: 16px;
+      color: #a1a1aa;
+      padding-left: 20px;
+      line-height: 1.6;
     }
     
     .instructions li {
@@ -227,11 +256,11 @@
     }
     
     .consent-content {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      background: #111113;
       border-radius: 12px;
       padding: 24px;
       max-width: 300px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid #27272a;
     }
     
     .consent-title {
@@ -243,19 +272,19 @@
     
     .consent-text {
       font-size: 13px;
-      color: #aaa;
-      line-height: 1.5;
+      color: #a1a1aa;
+      line-height: 1.6;
       margin-bottom: 16px;
     }
     
     .consent-link {
-      color: #a855f7;
+      color: #ec4899;
       text-decoration: underline;
       cursor: pointer;
     }
     
     .consent-link:hover {
-      color: #ec4899;
+      color: #f472b6;
     }
     
     .consent-buttons {
@@ -275,46 +304,153 @@
     }
     
     .btn-consent-accept {
-      background: linear-gradient(45deg, #a855f7, #ec4899);
+      background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
       color: white;
     }
     
     .btn-consent-accept:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
     }
     
     .btn-consent-decline {
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
+      background: #111113;
+      border: 1px solid #27272a;
+      color: #fafafa;
     }
     
     .btn-consent-decline:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: #18181b;
+      border-color: #3f3f46;
     }
     
     
     .consent-notice {
       margin-top: 8px;
       font-size: 11px;
-      color: #888;
+      color: #a1a1aa;
       text-align: center;
       line-height: 1.4;
     }
     
     .consent-notice a {
-      color: #a855f7;
+      color: #ec4899;
       text-decoration: underline;
       cursor: pointer;
     }
     
     .consent-notice a:hover {
-      color: #ec4899;
+      color: #f472b6;
+    }
+    
+    .stats-container {
+      display: flex;
+      gap: 12px;
+      padding: 20px;
+      background: #0a0a0b;
+    }
+    
+    .stat-card {
+      flex: 1;
+      background: #111113;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    
+    .stat-card:hover {
+      border-color: #3f3f46;
+      background: #18181b;
+    }
+    
+    .stat-label {
+      font-size: 11px;
+      color: #a1a1aa;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fafafa;
+      background: linear-gradient(135deg, #fafafa 0%, #ec4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .main-content {
+      flex: 1;
+      padding: 20px;
+      background: #0a0a0b;
+      overflow-y: auto;
+    }
+    
+    .main-button {
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+      margin-top: auto;
+      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+    }
+    
+    .main-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(236, 72, 153, 0.4);
+    }
+    
+    .main-button:active {
+      transform: translateY(0);
+    }
+    
+    .main-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .main-button-container {
+      padding: 20px;
+      background: #111113;
+      border-top: 1px solid #27272a;
     }
   </style>
 </head>
 <body>
-  <!-- Consent Dialog -->
+  <!-- Top Header with Title -->
+  <div class="top-header">
+    <div class="top-header-title">Socialora</div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-container">
+    <div class="stat-card">
+      <div class="stat-label">Messages today</div>
+      <div class="stat-value" id="messages-today">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total messages</div>
+      <div class="stat-value" id="total-messages">0</div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="main-content">
+    <!-- Consent Dialog -->
   <div id="consent-dialog" class="consent-dialog hidden">
     <div class="consent-content">
       <div class="consent-title">🔒 Consent Required</div>
@@ -337,82 +473,59 @@
     </div>
   </div>
 
-  <div class="header">
-    <div class="logo">📨</div>
-    <div>
-      <div class="title">Socialora</div>
-      <div class="subtitle">Instagram Session Grabber</div>
+    <!-- Status messages (hidden by default, shown when needed) -->
+    <div id="status-not-instagram" class="status warning hidden">
+      ⚠️ Instagram tab is not available. The extension will open it for you when you start.
     </div>
-  </div>
 
-  <div id="status-not-instagram" class="status warning hidden">
-    ⚠️ Instagram tab is not available. The extension will open it for you when you start.
-  </div>
-
-  <div id="status-not-logged-in" class="status error hidden">
-    ❌ Not logged in to Instagram. Please login in the opened Instagram tab.
-  </div>
-
-  <div id="status-success" class="status success hidden">
-    ✅ Connected successfully!
-  </div>
-
-  <div id="status-error" class="status error hidden">
-    ❌ <span id="error-message">Connection failed</span>
-  </div>
-
-  <div id="status-connecting" class="status info hidden">
-    <div class="spinner"></div>
-    Waiting for Instagram login...
-  </div>
-
-  <div id="user-info" class="user-info hidden">
-    <div class="user-avatar" id="user-avatar">?</div>
-    <div class="user-details">
-      <div class="user-name" id="user-fullname">Loading...</div>
-      <div class="user-username" id="user-username">@username</div>
+    <div id="status-not-logged-in" class="status error hidden">
+      ❌ Not logged in to Instagram. Please login in the opened Instagram tab.
     </div>
-  </div>
 
-  <div style="margin-bottom: 16px;">
-    <button id="grab-btn" class="btn btn-primary">
-      🔗 Start Instagram Connection
+    <div id="status-success" class="status success hidden">
+      ✅ Connected successfully!
+    </div>
+
+    <div id="status-error" class="status error hidden">
+      ❌ <span id="error-message">Connection failed</span>
+    </div>
+
+    <div id="status-connecting" class="status info hidden">
+      <div class="spinner"></div>
+      Waiting for Instagram login...
+    </div>
+
+    <div id="user-info" class="user-info hidden">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <div class="user-details">
+        <div class="user-name" id="user-fullname">Loading...</div>
+        <div class="user-username" id="user-username">@username</div>
+      </div>
+    </div>
+
+    <div id="instructions" class="instructions hidden">
+      <h3>How it works</h3>
+      <ol>
+        <li>Click "PRESS TO START" button below</li>
+        <li>We open Instagram for you in a new tab</li>
+        <li>Login or complete any Instagram security checks</li>
+        <li>Click "PRESS TO STOP" when you're done – we grab cookies and close the tab</li>
+      </ol>
+    </div>
+
+    <button id="open-app-btn" class="btn btn-secondary hidden" style="margin-top: 12px;">
+      🚀 Open Socialora App
     </button>
-    <button id="stop-btn" class="btn btn-secondary hidden">
-      ⏹ Stop & Finish
+  </div>
+
+  <!-- Main Action Button -->
+  <div class="main-button-container">
+    <button id="grab-btn" class="main-button">
+      PRESS TO START
     </button>
-    <div style="margin-top: 10px; padding: 10px; background: rgba(168, 85, 247, 0.1); border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.2);">
-      <p style="margin: 0; font-size: 11px; color: #aaa; text-align: center; line-height: 1.5;">
-        By clicking above, you agree to our 
-        <a href="https://www.socialora.app/privacy" target="_blank" style="color: #a855f7; text-decoration: underline; font-weight: 500;">Privacy Policy</a>
-      </p>
-    </div>
-  </div>
-
-  <button id="open-instagram-btn" class="btn btn-secondary hidden">
-    📱 Open Instagram
-  </button>
-
-  <button id="open-app-btn" class="btn btn-secondary hidden">
-    🚀 Open Socialora App
-  </button>
-
-  <div class="instructions" id="instructions">
-    <h3>How it works</h3>
-    <ol>
-      <li>Click "Start Instagram Connection" in this popup</li>
-      <li>We open Instagram for you in a new tab</li>
-      <li>Login or complete any Instagram security checks</li>
-      <li>Click "Stop & Finish" when you’re done – we grab cookies and close the tab</li>
-    </ol>
-  </div>
-
-  <div class="footer">
-    Works with any Instagram account
-  </div>
-
-  <div id="env-indicator" style="margin-top: 12px; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 6px; text-align: center; font-size: 11px; color: #888;">
-    <span id="env-text">Connecting to Socialora...</span>
+    <button id="stop-btn" class="main-button hidden">
+      PRESS TO STOP
+    </button>
   </div>
 
   <script src="config.js"></script>
