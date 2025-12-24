@@ -25,11 +25,15 @@ import {
     Trash2,
     X
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID;
-const META_OAUTH_REDIRECT_URI = process.env.NEXT_PUBLIC_META_OAUTH_REDIRECT_URI || `${typeof window !== 'undefined' ? window.location.origin : ''}/api/instagram/callback`;
+const META_OAUTH_REDIRECT_URI =
+  process.env.NEXT_PUBLIC_META_OAUTH_REDIRECT_URI ||
+  `${
+    typeof window !== "undefined" ? window.location.origin : ""
+  }/api/instagram/callback`;
 // Use relative URLs since we're on the same domain (Next.js API routes)
 // All API calls use relative URLs since backend and frontend are on the same domain
 
@@ -53,116 +57,153 @@ export default function InstagramSettingsPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [accountsWithCookies, setAccountsWithCookies] = useState<Set<string>>(new Set());
-  
+  const [accountsWithCookies, setAccountsWithCookies] = useState<Set<string>>(
+    new Set()
+  );
+
   // Cookie-based auth state
   const [cookies, setCookies] = useState<InstagramCookies>({
-    sessionId: '',
-    csrfToken: '',
-    dsUserId: '',
-    igDid: '',
-    mid: '',
-    rur: '',
+    sessionId: "",
+    csrfToken: "",
+    dsUserId: "",
+    igDid: "",
+    mid: "",
+    rur: "",
   });
   const [isVerifyingCookies, setIsVerifyingCookies] = useState(false);
-  const [cookieUser, setCookieUser] = useState<{ username: string; fullName: string; profilePicUrl?: string } | null>(null);
-  
+  const [cookieUser, setCookieUser] = useState<{
+    username: string;
+    fullName: string;
+    profilePicUrl?: string;
+  } | null>(null);
+
   // Browser login state
   const [isBrowserLoggingIn, setIsBrowserLoggingIn] = useState(false);
   const [browserSessionId, setBrowserSessionId] = useState<string | null>(null);
-  const [browserLoginStatus, setBrowserLoginStatus] = useState<string>('');
-  
+  const [browserLoginStatus, setBrowserLoginStatus] = useState<string>("");
+
   // Send DM state
-  const [dmRecipient, setDmRecipient] = useState('');
-  const [dmMessage, setDmMessage] = useState('');
+  const [dmRecipient, setDmRecipient] = useState("");
+  const [dmMessage, setDmMessage] = useState("");
   const [isSendingDM, setIsSendingDM] = useState(false);
-  const [dmResult, setDmResult] = useState<{ success: boolean; error?: string } | null>(null);
+  const [dmResult, setDmResult] = useState<{
+    success: boolean;
+    error?: string;
+  } | null>(null);
+
+  // Track which accounts have been saved in this session to prevent duplicate saves
+  const savedAccountsRef = useRef<Set<string>>(new Set());
+  // Track which accounts are currently being processed to prevent concurrent saves
+  const processingAccountsRef = useRef<Set<string>>(new Set());
 
   // Check which accounts have valid cookies in localStorage
-  const checkAccountCookies = useCallback((accountsList: InstagramAccount[]) => {
-    const accountsWithValidCookies = new Set<string>();
-    
-    accountsList.forEach(account => {
-      const cookiesStr = localStorage.getItem(`socialora_cookies_${account.igUserId}`);
-      console.log(`Checking cookies for account ${account.igUsername} (ID: ${account.igUserId}):`, cookiesStr ? 'FOUND' : 'NOT FOUND');
-      if (cookiesStr) {
-        try {
-          const cookies = JSON.parse(cookiesStr);
-          // Check if cookies object has the required fields
-          if (cookies.sessionId && cookies.csrfToken && cookies.dsUserId) {
-            console.log(`✓ Valid cookies found for @${account.igUsername}`);
-            accountsWithValidCookies.add(account.id);
-          } else {
-            console.log(`✗ Invalid cookies structure for @${account.igUsername}`);
+  const checkAccountCookies = useCallback(
+    (accountsList: InstagramAccount[]) => {
+      const accountsWithValidCookies = new Set<string>();
+
+      accountsList.forEach((account) => {
+        const cookiesStr = localStorage.getItem(
+          `socialora_cookies_${account.igUserId}`
+        );
+        console.log(
+          `Checking cookies for account ${account.igUsername} (ID: ${account.igUserId}):`,
+          cookiesStr ? "FOUND" : "NOT FOUND"
+        );
+        if (cookiesStr) {
+          try {
+            const cookies = JSON.parse(cookiesStr);
+            // Check if cookies object has the required fields
+            if (cookies.sessionId && cookies.csrfToken && cookies.dsUserId) {
+              console.log(`✓ Valid cookies found for @${account.igUsername}`);
+              accountsWithValidCookies.add(account.id);
+            } else {
+              console.log(
+                `✗ Invalid cookies structure for @${account.igUsername}`
+              );
+            }
+          } catch (e) {
+            console.error("Failed to parse cookies:", e);
           }
-        } catch (e) {
-          console.error('Failed to parse cookies:', e);
         }
-      }
-    });
-    
-    console.log('Accounts with valid cookies:', accountsWithValidCookies.size, 'out of', accountsList.length);
-    setAccountsWithCookies(accountsWithValidCookies);
-  }, []);
+      });
+
+      console.log(
+        "Accounts with valid cookies:",
+        accountsWithValidCookies.size,
+        "out of",
+        accountsList.length
+      );
+      setAccountsWithCookies(accountsWithValidCookies);
+    },
+    []
+  );
 
   const fetchAccounts = useCallback(async () => {
     setIsLoading(true);
     try {
       const supabase = createClient();
       const { data, error } = await supabase
-        .from('instagram_accounts')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("instagram_accounts")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Error fetching accounts:', error);
+        console.error("Error fetching accounts:", error);
         setAccounts([]);
         return;
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedAccounts: InstagramAccount[] = (data || []).map((acc: any) => ({
-        id: acc.id,
-        igUserId: acc.ig_user_id,
-        igUsername: acc.ig_username,
-        profilePictureUrl: acc.profile_picture_url,
-        isActive: acc.is_active,
-        dailyDmLimit: acc.daily_dm_limit,
-        dmsSentToday: acc.dms_sent_today,
-        createdAt: acc.created_at,
-      }));
+      const transformedAccounts: InstagramAccount[] = (data || []).map(
+        (acc: any) => ({
+          id: acc.id,
+          igUserId: acc.ig_user_id,
+          igUsername: acc.ig_username,
+          profilePictureUrl: acc.profile_picture_url,
+          isActive: acc.is_active,
+          dailyDmLimit: acc.daily_dm_limit,
+          dmsSentToday: acc.dms_sent_today,
+          createdAt: acc.created_at,
+        })
+      );
 
       setAccounts(transformedAccounts);
-      
+
       // Check localStorage for cookies (cookies are stored in localStorage ONLY, not in Supabase)
       const accountsWithValidCookies = new Set<string>();
       for (const acc of data || []) {
         // Check if cookies exist in localStorage for this account
         const localStorageKey = `socialora_cookies_${acc.ig_user_id}`;
         const cookiesStr = localStorage.getItem(localStorageKey);
-        
+
         if (cookiesStr) {
           try {
             const cookies = JSON.parse(cookiesStr);
             // Check if cookies are valid
             if (cookies.sessionId && cookies.csrfToken && cookies.dsUserId) {
               accountsWithValidCookies.add(acc.id);
-              console.log(`✓ Found valid cookies in localStorage for @${acc.ig_username}`);
+              console.log(
+                `✓ Found valid cookies in localStorage for @${acc.ig_username}`
+              );
             }
           } catch (e) {
-            console.error('Failed to parse cookies from localStorage for account:', acc.ig_username, e);
+            console.error(
+              "Failed to parse cookies from localStorage for account:",
+              acc.ig_username,
+              e
+            );
           }
         }
       }
-      
+
       setAccountsWithCookies(accountsWithValidCookies);
-      
+
       // Note: Cookies are no longer stored in Supabase - they are in localStorage only
       setTimeout(() => {
         checkAccountCookies(transformedAccounts);
       }, 100);
     } catch (error) {
-      console.error('Error fetching accounts:', error);
+      console.error("Error fetching accounts:", error);
       setAccounts([]);
     } finally {
       setIsLoading(false);
@@ -171,422 +212,464 @@ export default function InstagramSettingsPage() {
 
   useEffect(() => {
     fetchAccounts();
-    
+
     // Listen for cookies saved event from extension
     const handleCookiesSaved = (event: CustomEvent) => {
-      console.log('Received cookies saved event:', event.detail);
+      console.log("Received cookies saved event:", event.detail);
       const { userId, storageKey, cookies } = event.detail;
-      
+
       // If cookies are in the event, save them
       if (cookies && userId) {
         const localStorageKey = `socialora_cookies_${userId}`;
         localStorage.setItem(localStorageKey, JSON.stringify(cookies));
-        console.log('✓ Cookies saved from event to localStorage');
+        console.log("✓ Cookies saved from event to localStorage");
       }
-      
+
       // Refresh accounts to show the new connection
       setTimeout(() => {
         fetchAccounts();
       }, 500);
     };
-    
+
     // Listen for storage events (when localStorage is updated)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key && e.key.startsWith('socialora_cookies_')) {
-        console.log('Storage event detected for cookies:', e.key);
+      if (e.key && e.key.startsWith("socialora_cookies_")) {
+        console.log("Storage event detected for cookies:", e.key);
         setTimeout(() => {
           fetchAccounts();
         }, 500);
       }
     };
-    
+
     // Listen for window messages (fallback communication)
     const handleMessage = (event: MessageEvent) => {
       // Ignore messages from other origins
       if (event.origin !== window.location.origin) {
         return;
       }
-      
+
       // Handle cookie save from extension
-      if (event.data && event.data.type === 'SOCIALORA_COOKIES_SAVED') {
+      // Only save cookies to localStorage; handleConnectedAccount will handle account saving
+      if (event.data && event.data.type === "SOCIALORA_COOKIES_SAVED") {
         const { userId, cookies, storageKey } = event.data;
-        console.log('Received cookies via postMessage:', { userId, storageKey, hasCookies: !!cookies });
+        console.log("Received cookies via postMessage:", {
+          userId,
+          storageKey,
+          hasCookies: !!cookies,
+        });
         if (cookies && userId) {
           try {
             const cookiesJson = JSON.stringify(cookies);
             const key = storageKey || `socialora_cookies_${userId}`;
             localStorage.setItem(key, cookiesJson);
             sessionStorage.setItem(key, cookiesJson);
-            console.log(`✓ Cookies saved to localStorage via postMessage (key: ${key})`);
-            
-            // If we're waiting for this user's cookies, trigger save
-            const params = new URLSearchParams(window.location.search);
-            const igUserId = params.get('ig_user_id');
-            if (igUserId === userId) {
-              const accountParam = params.get('account');
-              let accountMetadata: any = {};
-              if (accountParam) {
-                accountMetadata = JSON.parse(atob(accountParam));
-              }
-              handleAccountSave(userId, accountMetadata);
-            }
+            console.log(
+              `✓ Cookies saved to localStorage via postMessage (key: ${key})`
+            );
+
+            // Just refresh accounts list; handleConnectedAccount will save the account
+            // This prevents duplicate handleAccountSave calls
+            setTimeout(() => {
+              fetchAccounts();
+            }, 500);
           } catch (e) {
-            console.error('Failed to save cookies from postMessage:', e);
+            console.error("Failed to save cookies from postMessage:", e);
           }
         }
       }
-      
+
       // Handle cookie request response
-      if (event.data && event.data.type === 'SOCIALORA_COOKIES_RESPONSE') {
+      // Only save cookies to localStorage; handleConnectedAccount will handle account saving
+      if (event.data && event.data.type === "SOCIALORA_COOKIES_RESPONSE") {
         const { userId, cookies, storageKey } = event.data;
-        console.log('Received cookies response from extension:', { userId, storageKey, hasCookies: !!cookies });
+        console.log("Received cookies response from extension:", {
+          userId,
+          storageKey,
+          hasCookies: !!cookies,
+        });
         if (cookies && userId) {
           try {
             const cookiesJson = JSON.stringify(cookies);
             const key = storageKey || `socialora_cookies_${userId}`;
             localStorage.setItem(key, cookiesJson);
             sessionStorage.setItem(key, cookiesJson);
-            console.log(`✓ Cookies saved to localStorage via extension response (key: ${key})`);
-            
-            // If we're waiting for this user's cookies, trigger save
-            const params = new URLSearchParams(window.location.search);
-            const igUserId = params.get('ig_user_id');
-            if (igUserId === userId) {
-              const accountParam = params.get('account');
-              let accountMetadata: any = {};
-              if (accountParam) {
-                accountMetadata = JSON.parse(atob(accountParam));
-              }
-              handleAccountSave(userId, accountMetadata);
-            }
+            console.log(
+              `✓ Cookies saved to localStorage via extension response (key: ${key})`
+            );
+
+            // Just refresh accounts list; handleConnectedAccount will save the account
+            // This prevents duplicate handleAccountSave calls
+            setTimeout(() => {
+              fetchAccounts();
+            }, 500);
           } catch (e) {
-            console.error('Failed to save cookies from extension response:', e);
-          }
-        }
-      }
-      
-      if (event.data && event.data.type === 'SOCIALORA_COOKIES_SAVED') {
-        console.log('Received cookies via postMessage:', event.data);
-        const { userId, cookies, storageKey } = event.data;
-        if (cookies && userId) {
-          const localStorageKey = storageKey || `socialora_cookies_${userId}`;
-          try {
-            localStorage.setItem(localStorageKey, JSON.stringify(cookies));
-            console.log('✓ Cookies saved from postMessage to localStorage (key:', localStorageKey, ')');
-            
-            // Verify it was saved
-            const verify = localStorage.getItem(localStorageKey);
-            if (verify) {
-              console.log('✓ Verified: Cookies are in localStorage after postMessage');
-            } else {
-              console.error('✗ ERROR: Cookies not found after postMessage save!');
-            }
-            
-            // If we have an ig_user_id in URL, trigger account save
-            const urlParams = new URLSearchParams(window.location.search);
-            const igUserId = urlParams.get('ig_user_id');
-            if (igUserId && igUserId === userId) {
-              const accountParam = urlParams.get('account');
-              let accountMetadata: any = {};
-              if (accountParam) {
-                try {
-                  accountMetadata = JSON.parse(atob(accountParam));
-                } catch (e) {
-                  console.error('Failed to parse account metadata:', e);
-                }
-              }
-              setTimeout(() => {
-                handleAccountSave(userId, accountMetadata);
-              }, 300);
-            } else {
-              setTimeout(() => {
-                fetchAccounts();
-              }, 500);
-            }
-          } catch (e) {
-            console.error('Failed to save cookies from postMessage:', e);
+            console.error("Failed to save cookies from extension response:", e);
           }
         }
       }
     };
-    
-    window.addEventListener('socialora_cookies_saved', handleCookiesSaved as EventListener);
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('message', handleMessage);
-    
+
+    window.addEventListener(
+      "socialora_cookies_saved",
+      handleCookiesSaved as EventListener
+    );
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("message", handleMessage);
+
     return () => {
-      window.removeEventListener('socialora_cookies_saved', handleCookiesSaved as EventListener);
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('message', handleMessage);
+      window.removeEventListener(
+        "socialora_cookies_saved",
+        handleCookiesSaved as EventListener
+      );
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("message", handleMessage);
     };
   }, [fetchAccounts]);
 
   // Check for success/error from OAuth callback or extension
   // Helper function to save account to database
-  const handleAccountSave = useCallback(async (igUserId: string, accountMetadata: any) => {
-    const supabase = createClient();
-    
-    // Get current user's workspace
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) {
-      setErrorMessage('Please log in');
-      return;
-    }
+  const handleAccountSave = useCallback(
+    async (igUserId: string, accountMetadata: any) => {
+      // Prevent duplicate saves for the same account in this session
+      if (savedAccountsRef.current.has(igUserId)) {
+        console.log(
+          `Account ${igUserId} already saved in this session, skipping duplicate save`
+        );
+        return;
+      }
 
-    const { getOrCreateUserWorkspaceId } = await import('@/lib/supabase/user-workspace-client');
-    const workspaceId = await getOrCreateUserWorkspaceId();
+      // Prevent concurrent processing of the same account
+      if (processingAccountsRef.current.has(igUserId)) {
+        console.log(
+          `Account ${igUserId} is already being processed, skipping duplicate save`
+        );
+        return;
+      }
 
-    if (!workspaceId) {
-      setErrorMessage('Failed to get or create workspace. Please try refreshing the page.');
-      return;
-    }
-    
-    // Check if account already exists
-    const { data: existingAccount } = await supabase
-      .from('instagram_accounts')
-      .select('id')
-      .eq('ig_user_id', String(igUserId))
-      .eq('workspace_id', workspaceId)
-      .single();
+      // Mark as processing
+      processingAccountsRef.current.add(igUserId);
 
-    // Prepare account data to save (WITHOUT cookies - cookies stored in localStorage ONLY)
-    const accountDataToSave = {
-      ig_username: accountMetadata.username || `user_${igUserId}`,
-      profile_picture_url: accountMetadata.profilePicUrl || null,
-      access_token: 'cookie_auth', // Placeholder - no actual cookies stored
-      access_token_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      is_active: true,
-    };
+      const supabase = createClient();
 
-    let saveSuccess = false;
-    let saveError: string | null = null;
+      // Get current user's workspace
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser) {
+        setErrorMessage("Please log in");
+        return;
+      }
 
-    // Save account metadata to Supabase (cookies are NOT saved to database)
-    try {
-      if (existingAccount) {
-        const { error: updateError } = await supabase
-          .from('instagram_accounts')
-          .update(accountDataToSave)
-          .eq('id', existingAccount.id);
+      const { getOrCreateUserWorkspaceId } = await import(
+        "@/lib/supabase/user-workspace-client"
+      );
+      const workspaceId = await getOrCreateUserWorkspaceId();
 
-        if (updateError) {
-          console.error('Error updating account:', updateError);
-          saveError = 'Failed to update account: ' + updateError.message;
-        } else {
-          console.log('✓ Account updated successfully (cookies in localStorage only)');
-          saveSuccess = true;
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from('instagram_accounts')
-          .insert({
-            workspace_id: workspaceId,
-            ig_user_id: String(igUserId),
-            ...accountDataToSave,
-            daily_dm_limit: 100,
-            dms_sent_today: 0,
-            fb_page_id: `cookie_auth_${igUserId}`,
-            permissions: ['cookie_auth', 'dm_send', 'dm_read'],
+      if (!workspaceId) {
+        setErrorMessage(
+          "Failed to get or create workspace. Please try refreshing the page."
+        );
+        return;
+      }
+
+      // Prepare account data to save (WITHOUT cookies - cookies stored in localStorage ONLY)
+      const accountDataToSave = {
+        workspace_id: workspaceId,
+        ig_user_id: String(igUserId),
+        ig_username: accountMetadata.username || `user_${igUserId}`,
+        profile_picture_url: accountMetadata.profilePicUrl || null,
+        access_token: "cookie_auth", // Placeholder - no actual cookies stored
+        access_token_expires_at: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000
+        ).toISOString(),
+        is_active: true,
+        daily_dm_limit: 100,
+        dms_sent_today: 0,
+        fb_page_id: `cookie_auth_${igUserId}`,
+        permissions: ["cookie_auth", "dm_send", "dm_read"],
+      };
+
+      let saveSuccess = false;
+      let saveError: string | null = null;
+
+      // Use UPSERT to handle both insert and update automatically
+      // This prevents duplicate key errors by updating if exists, inserting if not
+      try {
+        const { error: upsertError } = await supabase
+          .from("instagram_accounts")
+          .upsert(accountDataToSave, {
+            onConflict: "ig_user_id,workspace_id", // Use the unique constraint columns
           });
 
-        if (insertError) {
-          console.error('Error inserting account:', insertError);
-          saveError = 'Failed to save account: ' + insertError.message;
+        if (upsertError) {
+          console.error("Error upserting account:", upsertError);
+          saveError = "Failed to save account: " + upsertError.message;
         } else {
-          console.log('✓ Account inserted successfully (cookies in localStorage only)');
+          console.log(
+            "✓ Account saved successfully (cookies in localStorage only)"
+          );
           saveSuccess = true;
         }
+      } catch (error: any) {
+        console.error("Unexpected error:", error);
+        saveError =
+          "Failed to save account: " + (error.message || "Unknown error");
       }
-    } catch (error: any) {
-      console.error('Unexpected error:', error);
-      saveError = 'Failed to save account: ' + (error.message || 'Unknown error');
-    }
 
-    // Cookies are already in localStorage (transferred by extension)
-    console.log(`✓ Cookies already in localStorage (key: socialora_cookies_${igUserId})`);
-    
-    // Show success message
-    if (saveSuccess) {
-      setErrorMessage(null);
-      toast.success('Account connected!', {
-        description: `Successfully connected @${accountMetadata.username || igUserId}. Cookies stored securely.`,
-      });
-      fetchAccounts();
-    } else if (saveError) {
-      toast.error('Connection failed', {
-        description: saveError,
-      });
-      setErrorMessage(saveError);
-    }
-  }, [fetchAccounts]);
+      // Cookies are already in localStorage (transferred by extension)
+      console.log(
+        `✓ Cookies already in localStorage (key: socialora_cookies_${igUserId})`
+      );
+
+      // Show success message
+      if (saveSuccess) {
+        // Mark this account as saved to prevent duplicate saves
+        savedAccountsRef.current.add(igUserId);
+        setErrorMessage(null);
+        toast.success("Account connected!", {
+          description: `Successfully connected @${
+            accountMetadata.username || igUserId
+          }. Cookies stored securely.`,
+        });
+        fetchAccounts();
+      } else if (saveError) {
+        toast.error("Connection failed", {
+          description: saveError,
+        });
+        setErrorMessage(saveError);
+      }
+
+      // Clear processing flag
+      processingAccountsRef.current.delete(igUserId);
+    },
+    [fetchAccounts]
+  );
 
   useEffect(() => {
     const handleConnectedAccount = async () => {
       const params = new URLSearchParams(window.location.search);
-      const success = params.get('success');
-      const account = params.get('account');
-      const errorParam = params.get('error');
-      const message = params.get('message');
-      const connectedData = params.get('connected');
+      const success = params.get("success");
+      const account = params.get("account");
+      const errorParam = params.get("error");
+      const message = params.get("message");
+      const connectedData = params.get("connected");
 
       // Handle account connected from extension (new approach: only user ID in URL)
-      const igUserId = params.get('ig_user_id');
-      const accountParam = params.get('account');
-      
+      const igUserId = params.get("ig_user_id");
+      const accountParam = params.get("account");
+
       if (igUserId) {
+        // Prevent duplicate processing - check if already saved or being processed
+        if (savedAccountsRef.current.has(igUserId)) {
+          console.log(
+            `Account ${igUserId} already saved, skipping duplicate processing`
+          );
+          window.history.replaceState({}, "", window.location.pathname);
+          return;
+        }
+
+        if (processingAccountsRef.current.has(igUserId)) {
+          console.log(
+            `Account ${igUserId} already being processed, skipping duplicate processing`
+          );
+          window.history.replaceState({}, "", window.location.pathname);
+          return;
+        }
+
         try {
           // Parse account metadata from URL (if provided)
           let accountMetadata: any = {};
           if (accountParam) {
             accountMetadata = JSON.parse(atob(accountParam));
           }
-          
-          console.log('Received Instagram user ID from extension:', igUserId);
-          
+
+          console.log("Received Instagram user ID from extension:", igUserId);
+
           // Check if cookies exist in localStorage (transferred by extension script)
           const localStorageKey = `socialora_cookies_${igUserId}`;
           let cookiesStr = localStorage.getItem(localStorageKey);
-          
+
           // Also check for cookies with username as fallback
           if (!cookiesStr && accountMetadata.username) {
             const usernameKey = `socialora_cookies_${accountMetadata.username}`;
             cookiesStr = localStorage.getItem(usernameKey);
             if (cookiesStr) {
-              console.log('Found cookies using username key, moving to userId key');
+              console.log(
+                "Found cookies using username key, moving to userId key"
+              );
               localStorage.setItem(localStorageKey, cookiesStr);
             }
           }
-          
+
           if (!cookiesStr) {
-            console.warn('Cookies not found in localStorage. Starting polling and requesting from extension...');
-            console.log('Looking for key:', localStorageKey);
-            console.log('Available localStorage keys:', Object.keys(localStorage).filter(k => k.includes('socialora') || k.includes('cookie')));
-            
+            console.warn(
+              "Cookies not found in localStorage. Starting polling and requesting from extension..."
+            );
+            console.log("Looking for key:", localStorageKey);
+            console.log(
+              "Available localStorage keys:",
+              Object.keys(localStorage).filter(
+                (k) => k.includes("socialora") || k.includes("cookie")
+              )
+            );
+
             // Try to request cookies from extension via postMessage
             const requestCookiesFromExtension = () => {
               // Request cookies from extension via window.postMessage
-              window.postMessage({
-                type: 'SOCIALORA_REQUEST_COOKIES',
-                userId: igUserId,
-                storageKey: localStorageKey
-              }, window.location.origin);
-              
+              window.postMessage(
+                {
+                  type: "SOCIALORA_REQUEST_COOKIES",
+                  userId: igUserId,
+                  storageKey: localStorageKey,
+                },
+                window.location.origin
+              );
+
               // Also try via custom event
-              window.dispatchEvent(new CustomEvent('socialora_request_cookies', {
-                detail: { userId: igUserId, storageKey: localStorageKey }
-              }));
+              window.dispatchEvent(
+                new CustomEvent("socialora_request_cookies", {
+                  detail: { userId: igUserId, storageKey: localStorageKey },
+                })
+              );
             };
-            
+
             // Request immediately
             requestCookiesFromExtension();
-            
+
             // Retry localStorage with polling - increased retries and shorter interval
             let retryCount = 0;
             const maxRetries = 20; // Increased to 20
             const retryInterval = 300; // Reduced to 300ms for faster detection
-            
+
             const checkCookies = setInterval(() => {
               retryCount++;
-              
+
               // Request from extension every 3 retries
               if (retryCount % 3 === 0) {
                 requestCookiesFromExtension();
               }
-              
+
               // Check primary key
               let retryCookies = localStorage.getItem(localStorageKey);
-              
+
               // Also check username key as fallback
               if (!retryCookies && accountMetadata.username) {
                 const usernameKey = `socialora_cookies_${accountMetadata.username}`;
                 retryCookies = localStorage.getItem(usernameKey);
                 if (retryCookies) {
-                  console.log('Found cookies using username key, moving to userId key');
+                  console.log(
+                    "Found cookies using username key, moving to userId key"
+                  );
                   localStorage.setItem(localStorageKey, retryCookies);
                 }
               }
-              
+
               // Check all socialora cookie keys as last resort
               if (!retryCookies) {
-                const allKeys = Object.keys(localStorage).filter(k => k.startsWith('socialora_cookies_'));
+                const allKeys = Object.keys(localStorage).filter((k) =>
+                  k.startsWith("socialora_cookies_")
+                );
                 if (allKeys.length > 0) {
-                  console.log('Found socialora cookie keys:', allKeys);
+                  console.log("Found socialora cookie keys:", allKeys);
                   // Try the most recent one (last in array)
                   const lastKey = allKeys[allKeys.length - 1];
                   retryCookies = localStorage.getItem(lastKey);
                   if (retryCookies) {
-                    console.log(`Using cookies from key: ${lastKey}, moving to correct key: ${localStorageKey}`);
+                    console.log(
+                      `Using cookies from key: ${lastKey}, moving to correct key: ${localStorageKey}`
+                    );
                     localStorage.setItem(localStorageKey, retryCookies);
                   }
                 }
               }
-              
+
               if (retryCookies) {
                 clearInterval(checkCookies);
-                console.log(`✓ Cookies found in localStorage after ${retryCount} retries`);
+                console.log(
+                  `✓ Cookies found in localStorage after ${retryCount} retries`
+                );
+                // Clear URL params immediately to prevent useEffect from running again
+                window.history.replaceState({}, "", window.location.pathname);
                 try {
                   const cookies = JSON.parse(retryCookies);
-                  console.log('Cookies structure:', Object.keys(cookies));
+                  console.log("Cookies structure:", Object.keys(cookies));
                   handleAccountSave(igUserId, accountMetadata);
                 } catch (e) {
-                  console.error('Failed to parse cookies:', e);
-                  setErrorMessage('Cookies found but invalid format. Please try connecting again.');
+                  console.error("Failed to parse cookies:", e);
+                  setErrorMessage(
+                    "Cookies found but invalid format. Please try connecting again."
+                  );
                 }
               } else if (retryCount >= maxRetries) {
                 clearInterval(checkCookies);
-                console.error('Cookies not found after all retries');
-                console.log('Final localStorage check - all keys:', Object.keys(localStorage).filter(k => k.includes('socialora') || k.includes('cookie')));
-                setErrorMessage('Cookies not found. Please try connecting again using the extension. Make sure you clicked "Grab Instagram Session" in the extension popup.');
+                console.error("Cookies not found after all retries");
+                console.log(
+                  "Final localStorage check - all keys:",
+                  Object.keys(localStorage).filter(
+                    (k) => k.includes("socialora") || k.includes("cookie")
+                  )
+                );
+                setErrorMessage(
+                  'Cookies not found. Please try connecting again using the extension. Make sure you clicked "Grab Instagram Session" in the extension popup.'
+                );
               }
             }, retryInterval);
-            
+
             return;
           }
-          
+
+          // Clear URL params immediately to prevent useEffect from running again
+          window.history.replaceState({}, "", window.location.pathname);
+
           // Save account to database and show success
           await handleAccountSave(igUserId, accountMetadata);
-          
         } catch (e) {
-          console.error('Failed to process connected account:', e);
-          setErrorMessage('Failed to process account data');
+          console.error("Failed to process connected account:", e);
+          setErrorMessage("Failed to process account data");
+          // Clear URL params even on error
+          window.history.replaceState({}, "", window.location.pathname);
         }
-        window.history.replaceState({}, '', window.location.pathname);
         return;
       }
-      
+
       // Legacy support: Handle old format with full account data
       if (connectedData) {
         try {
           const accountData = JSON.parse(atob(connectedData));
-          console.log('Received account data from extension (legacy format):', accountData);
-          
+          console.log(
+            "Received account data from extension (legacy format):",
+            accountData
+          );
+
           // Save cookies to localStorage
           const localStorageKey = `socialora_cookies_${accountData.pk}`;
           if (accountData.cookies) {
-            localStorage.setItem(localStorageKey, JSON.stringify(accountData.cookies));
+            localStorage.setItem(
+              localStorageKey,
+              JSON.stringify(accountData.cookies)
+            );
           }
-          
+
           // Save account metadata
           await handleAccountSave(accountData.pk, {
             username: accountData.username,
             fullName: accountData.fullName,
             profilePicUrl: accountData.profilePicUrl,
           });
-          
         } catch (e) {
-          console.error('Failed to save connected account:', e);
-          setErrorMessage('Failed to process account data');
+          console.error("Failed to save connected account:", e);
+          setErrorMessage("Failed to process account data");
         }
-        window.history.replaceState({}, '', window.location.pathname);
+        window.history.replaceState({}, "", window.location.pathname);
         return;
       }
 
-      if (success === 'true' && account) {
+      if (success === "true" && account) {
         setSuccessMessage(`Successfully connected @${account}!`);
-        window.history.replaceState({}, '', window.location.pathname);
+        window.history.replaceState({}, "", window.location.pathname);
       } else if (errorParam) {
         setErrorMessage(message || `Connection failed: ${errorParam}`);
-        window.history.replaceState({}, '', window.location.pathname);
+        window.history.replaceState({}, "", window.location.pathname);
       }
     };
 
@@ -596,7 +679,7 @@ export default function InstagramSettingsPage() {
   const handleConnect = async () => {
     setIsConnecting(true);
     setErrorMessage(null);
-    
+
     // Check if Meta OAuth is configured
     if (!META_APP_ID) {
       setShowSetupModal(true);
@@ -606,42 +689,41 @@ export default function InstagramSettingsPage() {
 
     // Build Meta OAuth URL directly
     const scopes = [
-      'instagram_basic',
-      'instagram_manage_messages',
-      'pages_show_list',
-      'pages_messaging',
-      'pages_read_engagement',
-    ].join(',');
+      "instagram_basic",
+      "instagram_manage_messages",
+      "pages_show_list",
+      "pages_messaging",
+      "pages_read_engagement",
+    ].join(",");
 
-    const state = btoa(JSON.stringify({ 
-      timestamp: Date.now(),
-      nonce: Math.random().toString(36).substring(7)
-    }));
+    const state = btoa(
+      JSON.stringify({
+        timestamp: Date.now(),
+        nonce: Math.random().toString(36).substring(7),
+      })
+    );
 
-    const authUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
-    authUrl.searchParams.set('client_id', META_APP_ID);
-    authUrl.searchParams.set('redirect_uri', META_OAUTH_REDIRECT_URI);
-    authUrl.searchParams.set('state', state);
-    authUrl.searchParams.set('scope', scopes);
-    authUrl.searchParams.set('response_type', 'code');
+    const authUrl = new URL("https://www.facebook.com/v18.0/dialog/oauth");
+    authUrl.searchParams.set("client_id", META_APP_ID);
+    authUrl.searchParams.set("redirect_uri", META_OAUTH_REDIRECT_URI);
+    authUrl.searchParams.set("state", state);
+    authUrl.searchParams.set("scope", scopes);
+    authUrl.searchParams.set("response_type", "code");
 
     // Redirect to Meta OAuth
     window.location.href = authUrl.toString();
   };
 
   const handleDisconnect = async (accountId: string) => {
-    if (!confirm('Are you sure you want to disconnect this account?')) return;
+    if (!confirm("Are you sure you want to disconnect this account?")) return;
 
     try {
       const supabase = createClient();
-      await supabase
-        .from('instagram_accounts')
-        .delete()
-        .eq('id', accountId);
+      await supabase.from("instagram_accounts").delete().eq("id", accountId);
 
-      setAccounts(prev => prev.filter(a => a.id !== accountId));
+      setAccounts((prev) => prev.filter((a) => a.id !== accountId));
     } catch (error) {
-      console.error('Error disconnecting account:', error);
+      console.error("Error disconnecting account:", error);
     }
   };
 
@@ -649,22 +731,22 @@ export default function InstagramSettingsPage() {
     try {
       const supabase = createClient();
       await supabase
-        .from('instagram_accounts')
+        .from("instagram_accounts")
         .update({ dms_sent_today: 0 })
-        .eq('id', accountId);
+        .eq("id", accountId);
 
-      setAccounts(prev =>
-        prev.map(a => a.id === accountId ? { ...a, dmsSentToday: 0 } : a)
+      setAccounts((prev) =>
+        prev.map((a) => (a.id === accountId ? { ...a, dmsSentToday: 0 } : a))
       );
     } catch (error) {
-      console.error('Error refreshing account:', error);
+      console.error("Error refreshing account:", error);
     }
   };
 
   const handleReconnect = (account: InstagramAccount) => {
     // Open Instagram in a new tab and show instructions to use the extension
-    window.open('https://www.instagram.com/', '_blank');
-    toast.info('Reconnect Instructions', {
+    window.open("https://www.instagram.com/", "_blank");
+    toast.info("Reconnect Instructions", {
       description: `To reconnect @${account.igUsername}:\n\n1. Make sure you're logged in to @${account.igUsername} on Instagram\n2. Click the SocialOra extension icon\n3. Click "Grab Instagram Session"\n\nYour cookies will be updated automatically.`,
       duration: 8000,
     });
@@ -679,7 +761,9 @@ export default function InstagramSettingsPage() {
   // Cookie-based authentication
   const handleVerifyCookies = async () => {
     if (!cookies.sessionId || !cookies.csrfToken || !cookies.dsUserId) {
-      setErrorMessage('Please fill in at least sessionId, csrfToken, and dsUserId');
+      setErrorMessage(
+        "Please fill in at least sessionId, csrfToken, and dsUserId"
+      );
       return;
     }
 
@@ -688,9 +772,9 @@ export default function InstagramSettingsPage() {
     setCookieUser(null);
 
     try {
-      const response = await fetch('/api/instagram/cookie/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/instagram/cookie/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies }),
       });
 
@@ -700,10 +784,12 @@ export default function InstagramSettingsPage() {
         setCookieUser(data.user);
         setSuccessMessage(`Session verified for @${data.user.username}`);
       } else {
-        setErrorMessage(data.message || 'Failed to verify cookies');
+        setErrorMessage(data.message || "Failed to verify cookies");
       }
     } catch (error) {
-      setErrorMessage('Failed to connect to backend. Make sure it\'s running on port 3000.');
+      setErrorMessage(
+        "Failed to connect to backend. Make sure it's running on port 3000."
+      );
     } finally {
       setIsVerifyingCookies(false);
     }
@@ -711,7 +797,7 @@ export default function InstagramSettingsPage() {
 
   const handleConnectWithCookies = async () => {
     if (!cookieUser) {
-      setErrorMessage('Please verify cookies first');
+      setErrorMessage("Please verify cookies first");
       return;
     }
 
@@ -719,34 +805,42 @@ export default function InstagramSettingsPage() {
 
     try {
       const supabase = createClient();
-      
+
       // Get current user's workspace (will create if doesn't exist)
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
       if (!authUser) {
-        setErrorMessage('Please log in');
+        setErrorMessage("Please log in");
         setIsVerifyingCookies(false);
         return;
       }
 
       // Use client-side helper function that ensures workspace exists
-      const { getOrCreateUserWorkspaceId } = await import('@/lib/supabase/user-workspace-client');
+      const { getOrCreateUserWorkspaceId } = await import(
+        "@/lib/supabase/user-workspace-client"
+      );
       const workspaceId = await getOrCreateUserWorkspaceId();
 
       if (!workspaceId) {
-        console.error('Failed to get or create workspace. Check browser console for details.');
-        setErrorMessage('Failed to get or create workspace. Please check the browser console (F12) for details and try again.');
+        console.error(
+          "Failed to get or create workspace. Check browser console for details."
+        );
+        setErrorMessage(
+          "Failed to get or create workspace. Please check the browser console (F12) for details and try again."
+        );
         setIsVerifyingCookies(false);
         return;
       }
 
-      console.log('Workspace ID obtained:', workspaceId);
+      console.log("Workspace ID obtained:", workspaceId);
 
-      const response = await fetch('/api/instagram/cookie/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+      const response = await fetch("/api/instagram/cookie/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           cookies,
-          workspaceId: workspaceId 
+          workspaceId: workspaceId,
         }),
       });
 
@@ -755,15 +849,15 @@ export default function InstagramSettingsPage() {
       if (data.success) {
         // Check if account already exists
         const { data: existingAccount } = await supabase
-          .from('instagram_accounts')
-          .select('id')
-          .eq('ig_user_id', data.account.pk)
-          .eq('workspace_id', workspaceId)
+          .from("instagram_accounts")
+          .select("id")
+          .eq("ig_user_id", data.account.pk)
+          .eq("workspace_id", workspaceId)
           .single();
 
         // Track Instagram account connection
-        capture('instagram_account_connected', {
-          method: 'cookie',
+        capture("instagram_account_connected", {
+          method: "cookie",
           username: data.account.username,
           is_new_account: !existingAccount,
         });
@@ -772,50 +866,68 @@ export default function InstagramSettingsPage() {
         // Try saving with cookies first, retry without cookies if column doesn't exist
         let savedAccount = null;
         let saveError = null;
-        
+
         // First attempt: Try saving WITH cookies
-        const { data: accountWithCookies, error: errorWithCookies } = await supabase
-          .from('instagram_accounts')
-          .upsert({
-            workspace_id: workspaceId,
-            ig_user_id: data.account.pk,
-            ig_username: data.account.username,
-            profile_picture_url: data.account.profilePicUrl,
-            access_token: 'cookie_auth',
-            access_token_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            cookies: cookies, // Save cookies to Supabase
-            is_active: true,
-            daily_dm_limit: 100,
-            dms_sent_today: 0,
-          }, {
-            onConflict: 'ig_user_id,workspace_id'
-          })
-          .select()
-          .single();
+        const { data: accountWithCookies, error: errorWithCookies } =
+          await supabase
+            .from("instagram_accounts")
+            .upsert(
+              {
+                workspace_id: workspaceId,
+                ig_user_id: data.account.pk,
+                ig_username: data.account.username,
+                profile_picture_url: data.account.profilePicUrl,
+                access_token: "cookie_auth",
+                access_token_expires_at: new Date(
+                  Date.now() + 30 * 24 * 60 * 60 * 1000
+                ).toISOString(),
+                cookies: cookies, // Save cookies to Supabase
+                is_active: true,
+                daily_dm_limit: 100,
+                dms_sent_today: 0,
+              },
+              {
+                onConflict: "ig_user_id,workspace_id",
+              }
+            )
+            .select()
+            .single();
 
         if (!errorWithCookies && accountWithCookies) {
           savedAccount = accountWithCookies;
-        } else if (errorWithCookies && errorWithCookies.message?.includes('cookies')) {
+        } else if (
+          errorWithCookies &&
+          errorWithCookies.message?.includes("cookies")
+        ) {
           // Retry without cookies if column doesn't exist
-          console.warn('Cookies column not available, saving without cookies:', errorWithCookies.message);
-          const { data: accountWithoutCookies, error: errorWithoutCookies } = await supabase
-            .from('instagram_accounts')
-            .upsert({
-              workspace_id: workspaceId,
-              ig_user_id: data.account.pk,
-              ig_username: data.account.username,
-              profile_picture_url: data.account.profilePicUrl,
-              access_token: 'cookie_auth',
-              access_token_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              // cookies: cookies, // Omit cookies if column doesn't exist
-              is_active: true,
-              daily_dm_limit: 100,
-              dms_sent_today: 0,
-            }, {
-              onConflict: 'ig_user_id,workspace_id'
-            })
-            .select()
-            .single();
+          console.warn(
+            "Cookies column not available, saving without cookies:",
+            errorWithCookies.message
+          );
+          const { data: accountWithoutCookies, error: errorWithoutCookies } =
+            await supabase
+              .from("instagram_accounts")
+              .upsert(
+                {
+                  workspace_id: workspaceId,
+                  ig_user_id: data.account.pk,
+                  ig_username: data.account.username,
+                  profile_picture_url: data.account.profilePicUrl,
+                  access_token: "cookie_auth",
+                  access_token_expires_at: new Date(
+                    Date.now() + 30 * 24 * 60 * 60 * 1000
+                  ).toISOString(),
+                  // cookies: cookies, // Omit cookies if column doesn't exist
+                  is_active: true,
+                  daily_dm_limit: 100,
+                  dms_sent_today: 0,
+                },
+                {
+                  onConflict: "ig_user_id,workspace_id",
+                }
+              )
+              .select()
+              .single();
 
           if (!errorWithoutCookies && accountWithoutCookies) {
             savedAccount = accountWithoutCookies;
@@ -827,7 +939,10 @@ export default function InstagramSettingsPage() {
         }
 
         // Always save cookies to localStorage for quick access (regardless of DB save result)
-        localStorage.setItem(`socialora_cookies_${data.account.pk}`, JSON.stringify(cookies));
+        localStorage.setItem(
+          `socialora_cookies_${data.account.pk}`,
+          JSON.stringify(cookies)
+        );
 
         if (savedAccount) {
           const newAccount: InstagramAccount = {
@@ -840,34 +955,46 @@ export default function InstagramSettingsPage() {
             dmsSentToday: savedAccount.dms_sent_today,
             createdAt: savedAccount.created_at,
           };
-          setAccounts(prev => {
-            const filtered = prev.filter(a => a.igUserId !== newAccount.igUserId);
+          setAccounts((prev) => {
+            const filtered = prev.filter(
+              (a) => a.igUserId !== newAccount.igUserId
+            );
             return [newAccount, ...filtered];
           });
-          
+
           // Update accountsWithCookies to show as active
-          setAccountsWithCookies(prev => new Set([...Array.from(prev), newAccount.id]));
+          setAccountsWithCookies(
+            (prev) => new Set([...Array.from(prev), newAccount.id])
+          );
         } else if (saveError) {
           // Only show error if both attempts failed
-          console.error('Failed to save account to database:', saveError);
+          console.error("Failed to save account to database:", saveError);
           // Don't show error to user - cookies are saved to localStorage, account functionality will work
         }
 
-        toast.success('Account connected!', {
+        toast.success("Account connected!", {
           description: `Successfully connected @${data.account.username}.`,
         });
         setSuccessMessage(`Connected @${data.account.username} successfully!`);
         setShowCookieModal(false);
-        setCookies({ sessionId: '', csrfToken: '', dsUserId: '', igDid: '', mid: '', rur: '' });
+        setCookies({
+          sessionId: "",
+          csrfToken: "",
+          dsUserId: "",
+          igDid: "",
+          mid: "",
+          rur: "",
+        });
         setCookieUser(null);
       } else {
-        toast.error('Connection failed', {
-          description: data.message || 'Failed to connect account. Please try again.',
+        toast.error("Connection failed", {
+          description:
+            data.message || "Failed to connect account. Please try again.",
         });
-        setErrorMessage(data.message || 'Failed to connect account');
+        setErrorMessage(data.message || "Failed to connect account");
       }
     } catch (error) {
-      setErrorMessage('Failed to connect account');
+      setErrorMessage("Failed to connect account");
     } finally {
       setIsVerifyingCookies(false);
     }
@@ -875,10 +1002,10 @@ export default function InstagramSettingsPage() {
 
   // Simple Browser Login - Opens Instagram in new tab
   const [showExtractModal, setShowExtractModal] = useState(false);
-  
+
   const handleBrowserLogin = () => {
     // Open Instagram in a new tab
-    window.open('https://www.instagram.com/', '_blank');
+    window.open("https://www.instagram.com/", "_blank");
     // Show the extract cookies modal
     setShowExtractModal(true);
   };
@@ -886,19 +1013,19 @@ export default function InstagramSettingsPage() {
   const handleCancelBrowserLogin = () => {
     setIsBrowserLoggingIn(false);
     setBrowserSessionId(null);
-    setBrowserLoginStatus('');
+    setBrowserLoginStatus("");
     setShowExtractModal(false);
   };
 
   // Send DM functionality
   const handleSendDM = async () => {
     if (!dmRecipient.trim() || !dmMessage.trim()) {
-      setErrorMessage('Please enter recipient username and message');
+      setErrorMessage("Please enter recipient username and message");
       return;
     }
 
     if (!cookies.sessionId) {
-      setErrorMessage('Please enter your Instagram cookies first');
+      setErrorMessage("Please enter your Instagram cookies first");
       return;
     }
 
@@ -906,12 +1033,12 @@ export default function InstagramSettingsPage() {
     setDmResult(null);
 
     try {
-      const response = await fetch('/api/instagram/cookie/dm/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/instagram/cookie/dm/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cookies,
-          recipientUsername: dmRecipient.replace('@', ''),
+          recipientUsername: dmRecipient.replace("@", ""),
           message: dmMessage,
         }),
       });
@@ -920,14 +1047,14 @@ export default function InstagramSettingsPage() {
       setDmResult(data);
 
       if (data.success) {
-        setSuccessMessage(`DM sent to @${dmRecipient.replace('@', '')}!`);
-        setDmMessage('');
+        setSuccessMessage(`DM sent to @${dmRecipient.replace("@", "")}!`);
+        setDmMessage("");
       } else {
-        setErrorMessage(data.error || 'Failed to send DM');
+        setErrorMessage(data.error || "Failed to send DM");
       }
     } catch (error) {
-      setErrorMessage('Failed to send DM. Make sure backend is running.');
-      setDmResult({ success: false, error: 'Connection failed' });
+      setErrorMessage("Failed to send DM. Make sure backend is running.");
+      setDmResult({ success: false, error: "Connection failed" });
     } finally {
       setIsSendingDM(false);
     }
@@ -946,12 +1073,13 @@ export default function InstagramSettingsPage() {
           <div className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-success flex-shrink-0" />
-              <p className="text-sm text-success font-medium">{successMessage}</p>
+              <p className="text-sm text-success font-medium">
+                {successMessage}
+              </p>
             </div>
             <button
               onClick={() => setSuccessMessage(null)}
-              className="p-1 hover:bg-success/20 rounded"
-            >
+              className="p-1 hover:bg-success/20 rounded">
               <X className="h-4 w-4 text-success" />
             </button>
           </div>
@@ -966,14 +1094,11 @@ export default function InstagramSettingsPage() {
             </div>
             <button
               onClick={() => setErrorMessage(null)}
-              className="p-1 hover:bg-error/20 rounded"
-            >
+              className="p-1 hover:bg-error/20 rounded">
               <X className="h-4 w-4 text-error" />
             </button>
           </div>
         )}
-
-
 
         {/* Connected Accounts - First Section */}
         <div className="mb-8">
@@ -985,8 +1110,7 @@ export default function InstagramSettingsPage() {
               variant="secondary"
               size="sm"
               onClick={handleBrowserLogin}
-              isLoading={isBrowserLoggingIn}
-            >
+              isLoading={isBrowserLoggingIn}>
               <Plus className="h-4 w-4 mr-2" />
               Add Another Account
             </Button>
@@ -994,8 +1118,10 @@ export default function InstagramSettingsPage() {
 
           {isLoading ? (
             <div className="space-y-4">
-              {[1, 2].map(i => (
-                <div key={i} className="bg-background-secondary rounded-xl border border-border p-6 animate-pulse">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="bg-background-secondary rounded-xl border border-border p-6 animate-pulse">
                   <div className="flex items-center gap-4">
                     <div className="h-14 w-14 rounded-full bg-background-elevated" />
                     <div className="flex-1 space-y-2">
@@ -1013,131 +1139,155 @@ export default function InstagramSettingsPage() {
                   // Sort by activeness: active accounts with cookies first, then active without cookies, then inactive
                   const aIsActive = a.isActive && accountsWithCookies.has(a.id);
                   const bIsActive = b.isActive && accountsWithCookies.has(b.id);
-                  const aIsActiveNoCookies = a.isActive && !accountsWithCookies.has(a.id);
-                  const bIsActiveNoCookies = b.isActive && !accountsWithCookies.has(b.id);
-                  
+                  const aIsActiveNoCookies =
+                    a.isActive && !accountsWithCookies.has(a.id);
+                  const bIsActiveNoCookies =
+                    b.isActive && !accountsWithCookies.has(b.id);
+
                   if (aIsActive && !bIsActive) return -1;
                   if (!aIsActive && bIsActive) return 1;
-                  if (aIsActiveNoCookies && !bIsActiveNoCookies && !bIsActive) return -1;
-                  if (!aIsActiveNoCookies && bIsActiveNoCookies && !aIsActive) return 1;
-                  
+                  if (aIsActiveNoCookies && !bIsActiveNoCookies && !bIsActive)
+                    return -1;
+                  if (!aIsActiveNoCookies && bIsActiveNoCookies && !aIsActive)
+                    return 1;
+
                   // If same status, sort by creation date (newest first)
-                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                  return (
+                    new Date(b.createdAt).getTime() -
+                    new Date(a.createdAt).getTime()
+                  );
                 })
                 .map((account, index) => (
-                <div
-                  key={account.id}
-                  className={cn(
-                    'bg-background-secondary rounded-xl border border-border p-6 transition-all hover:border-border-hover',
-                    'animate-slide-up'
-                  )}
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="flex items-center gap-4">
-                    <Avatar
-                      src={account.profilePictureUrl}
-                      name={account.igUsername}
-                      size="xl"
-                    />
+                  <div
+                    key={account.id}
+                    className={cn(
+                      "bg-background-secondary rounded-xl border border-border p-6 transition-all hover:border-border-hover",
+                      "animate-slide-up"
+                    )}
+                    style={{ animationDelay: `${index * 100}ms` }}>
+                    <div className="flex items-center gap-4">
+                      <Avatar
+                        src={account.profilePictureUrl}
+                        name={account.igUsername}
+                        size="xl"
+                      />
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-foreground">@{account.igUsername}</h4>
-                        {/* Only show badge if account is active AND has valid cookies */}
-                        {account.isActive && accountsWithCookies.has(account.id) ? (
-                          <Badge variant="success">Active</Badge>
-                        ) : account.isActive ? (
-                          <Badge variant="warning">Needs Reconnect</Badge>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-foreground">
+                            @{account.igUsername}
+                          </h4>
+                          {/* Only show badge if account is active AND has valid cookies */}
+                          {account.isActive &&
+                          accountsWithCookies.has(account.id) ? (
+                            <Badge variant="success">Active</Badge>
+                          ) : account.isActive ? (
+                            <Badge variant="warning">Needs Reconnect</Badge>
+                          ) : (
+                            <Badge variant="error">Inactive</Badge>
+                          )}
+                        </div>
+
+                        <p className="text-sm text-foreground-muted mb-3">
+                          Connected{" "}
+                          {new Date(account.createdAt).toLocaleDateString()}
+                        </p>
+
+                        {/* DM Limit Progress */}
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1 max-w-xs">
+                            <div className="flex items-center justify-between text-xs text-foreground-muted mb-1">
+                              <span>Daily DM Limit</span>
+                              <span>
+                                {account.dmsSentToday} / {account.dailyDmLimit}
+                              </span>
+                            </div>
+                            <div className="h-2 bg-background-elevated rounded-full overflow-hidden">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all",
+                                  account.dmsSentToday / account.dailyDmLimit >
+                                    0.8
+                                    ? "bg-warning"
+                                    : "bg-accent"
+                                )}
+                                style={{
+                                  width: `${
+                                    (account.dmsSentToday /
+                                      account.dailyDmLimit) *
+                                    100
+                                  }%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {account.dmsSentToday / account.dailyDmLimit >
+                            0.8 && (
+                            <div className="flex items-center gap-1 text-warning text-xs">
+                              <AlertCircle className="h-3 w-3" />
+                              <span>Nearing limit</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* Show only one status: Active if connected, Reconnect if not */}
+                        {account.isActive &&
+                        accountsWithCookies.has(account.id) ? (
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="text-sm font-medium">
+                              Connected
+                            </span>
+                          </div>
                         ) : (
-                          <Badge variant="error">Inactive</Badge>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleReconnect(account)}
+                            title="Connect or refresh session cookies"
+                            className="text-amber-400 border-amber-500/20 hover:bg-amber-500/10">
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            {account.isActive ? "Reconnect" : "Connect"}
+                          </Button>
                         )}
-                      </div>
-
-                      <p className="text-sm text-foreground-muted mb-3">
-                        Connected {new Date(account.createdAt).toLocaleDateString()}
-                      </p>
-
-                      {/* DM Limit Progress */}
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1 max-w-xs">
-                          <div className="flex items-center justify-between text-xs text-foreground-muted mb-1">
-                            <span>Daily DM Limit</span>
-                            <span>{account.dmsSentToday} / {account.dailyDmLimit}</span>
-                          </div>
-                          <div className="h-2 bg-background-elevated rounded-full overflow-hidden">
-                            <div
-                              className={cn(
-                                'h-full rounded-full transition-all',
-                                account.dmsSentToday / account.dailyDmLimit > 0.8
-                                  ? 'bg-warning'
-                                  : 'bg-accent'
-                              )}
-                              style={{ width: `${(account.dmsSentToday / account.dailyDmLimit) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {account.dmsSentToday / account.dailyDmLimit > 0.8 && (
-                          <div className="flex items-center gap-1 text-warning text-xs">
-                            <AlertCircle className="h-3 w-3" />
-                            <span>Nearing limit</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {/* Show only one status: Active if connected, Reconnect if not */}
-                      {account.isActive && accountsWithCookies.has(account.id) ? (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
-                          <CheckCircle className="h-4 w-4" />
-                          <span className="text-sm font-medium">Connected</span>
-                        </div>
-                      ) : (
                         <Button
-                          variant="secondary"
+                          variant="ghost"
                           size="sm"
-                          onClick={() => handleReconnect(account)}
-                          title="Connect or refresh session cookies"
-                          className="text-amber-400 border-amber-500/20 hover:bg-amber-500/10"
-                        >
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          {account.isActive ? 'Reconnect' : 'Connect'}
+                          onClick={() => handleDisconnect(account.id)}
+                          className="text-error hover:text-error hover:bg-error/10"
+                          title="Disconnect account">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDisconnect(account.id)}
-                        className="text-error hover:text-error hover:bg-error/10"
-                        title="Disconnect account"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           ) : (
             <div className="bg-background-secondary rounded-xl border border-dashed border-border p-12 text-center">
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center mx-auto mb-4">
                 <Instagram className="h-7 w-7 text-white" />
               </div>
-              <h4 className="text-foreground font-medium mb-1">No accounts connected</h4>
+              <h4 className="text-foreground font-medium mb-1">
+                No accounts connected
+              </h4>
               <p className="text-sm text-foreground-muted mb-4">
                 Connect your Instagram account to start sending DMs
               </p>
               <div className="flex items-center justify-center gap-3 flex-wrap">
-                <Button 
-                  onClick={handleBrowserLogin} 
+                <Button
+                  onClick={handleBrowserLogin}
                   isLoading={isBrowserLoggingIn}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                >
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
                   <Instagram className="h-4 w-4" />
                   Login with Instagram
                 </Button>
-                <Button variant="secondary" onClick={() => setShowCookieModal(true)}>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowCookieModal(true)}>
                   <Cookie className="h-4 w-4" />
                   Use Cookies
                 </Button>
@@ -1145,7 +1295,9 @@ export default function InstagramSettingsPage() {
               {browserLoginStatus && (
                 <div className="mt-4 p-3 rounded-lg bg-accent/10 border border-accent/20 inline-flex items-center gap-3">
                   <Loader2 className="h-4 w-4 text-accent animate-spin" />
-                  <span className="text-sm text-accent">{browserLoginStatus}</span>
+                  <span className="text-sm text-accent">
+                    {browserLoginStatus}
+                  </span>
                 </div>
               )}
             </div>
@@ -1161,40 +1313,50 @@ export default function InstagramSettingsPage() {
 
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-foreground mb-2">
-                {accounts.length > 0 ? 'Add Another Instagram Account' : 'Connect Your Instagram Account'}
+                {accounts.length > 0
+                  ? "Add Another Instagram Account"
+                  : "Connect Your Instagram Account"}
               </h2>
               <p className="text-foreground-muted mb-4 max-w-xl">
                 {accounts.length > 0 ? (
                   <>
-                    You can connect <strong>multiple Instagram accounts</strong> to manage them all from one place. 
-                    Each account can send DMs independently.
+                    You can connect <strong>multiple Instagram accounts</strong>{" "}
+                    to manage them all from one place. Each account can send DMs
+                    independently.
                   </>
                 ) : (
                   <>
-                    Install our Chrome extension for <strong>one-click automatic connection</strong>. 
-                    No manual copying needed - just click and connect! Works with any Instagram account.
+                    Install our Chrome extension for{" "}
+                    <strong>one-click automatic connection</strong>. No manual
+                    copying needed - just click and connect! Works with any
+                    Instagram account.
                   </>
                 )}
               </p>
 
               <div className="flex items-center gap-3 flex-wrap">
-                <Button 
-                  onClick={handleBrowserLogin} 
+                <Button
+                  onClick={handleBrowserLogin}
                   isLoading={isBrowserLoggingIn}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                >
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
                   <Plus className="h-4 w-4 mr-2" />
-                  {accounts.length > 0 ? 'Add Account' : 'Connect with Extension'}
+                  {accounts.length > 0
+                    ? "Add Account"
+                    : "Connect with Extension"}
                 </Button>
 
                 {accounts.length > 0 && (
-                  <Button variant="secondary" onClick={() => setShowSendDMModal(true)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowSendDMModal(true)}>
                     <Send className="h-4 w-4" />
                     Quick Send DM
                   </Button>
                 )}
 
-                <Button variant="ghost" onClick={() => setShowCookieModal(true)}>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowCookieModal(true)}>
                   <Cookie className="h-4 w-4" />
                   Manual Connection
                 </Button>
@@ -1205,13 +1367,15 @@ export default function InstagramSettingsPage() {
 
         {/* How it works */}
         <div className="bg-background-secondary rounded-xl border border-border p-6 mb-8">
-          <h3 className="text-sm font-medium text-foreground mb-4">How It Works (One-Click with Extension)</h3>
+          <h3 className="text-sm font-medium text-foreground mb-4">
+            How It Works (One-Click with Extension)
+          </h3>
           <div className="grid gap-3">
             {[
-              'Install our Chrome extension (one-time setup)',
-              'Go to Instagram and login to your account',
+              "Install our Chrome extension (one-time setup)",
+              "Go to Instagram and login to your account",
               'Click the extension icon → "Grab Session"',
-              'Done! Start sending DMs instantly 🚀',
+              "Done! Start sending DMs instantly 🚀",
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-3 text-sm">
                 <span className="h-5 w-5 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center flex-shrink-0">
@@ -1223,7 +1387,8 @@ export default function InstagramSettingsPage() {
           </div>
           <div className="mt-4 p-3 rounded-lg bg-success/10 border border-success/20">
             <p className="text-xs text-success">
-              ✅ <strong>Fully automated:</strong> No manual copying - extension grabs everything automatically!
+              ✅ <strong>Fully automated:</strong> No manual copying - extension
+              grabs everything automatically!
             </p>
           </div>
         </div>
@@ -1234,56 +1399,68 @@ export default function InstagramSettingsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-background-secondary rounded-2xl border border-border max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">Setup Required</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Setup Required
+              </h2>
               <button
                 onClick={() => setShowSetupModal(false)}
-                className="p-2 rounded-lg hover:bg-background-elevated text-foreground-muted hover:text-foreground transition-colors"
-              >
+                className="p-2 rounded-lg hover:bg-background-elevated text-foreground-muted hover:text-foreground transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-6">
               <p className="text-foreground-muted">
-                To connect real Instagram accounts, you need to configure the Meta API integration. Follow these steps:
+                To connect real Instagram accounts, you need to configure the
+                Meta API integration. Follow these steps:
               </p>
 
               <div className="space-y-4">
                 <div className="bg-background-elevated rounded-lg p-4">
-                  <h3 className="font-medium text-foreground mb-2">1. Create a Meta Developer App</h3>
+                  <h3 className="font-medium text-foreground mb-2">
+                    1. Create a Meta Developer App
+                  </h3>
                   <p className="text-sm text-foreground-muted mb-2">
-                    Go to Meta for Developers and create a new app with Instagram Graph API.
+                    Go to Meta for Developers and create a new app with
+                    Instagram Graph API.
                   </p>
                   <a
                     href="https://developers.facebook.com/apps/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-accent hover:underline flex items-center gap-1"
-                  >
+                    className="text-sm text-accent hover:underline flex items-center gap-1">
                     Open Meta Developer Portal
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
 
                 <div className="bg-background-elevated rounded-lg p-4">
-                  <h3 className="font-medium text-foreground mb-2">2. Configure Environment Variables</h3>
+                  <h3 className="font-medium text-foreground mb-2">
+                    2. Configure Environment Variables
+                  </h3>
                   <p className="text-sm text-foreground-muted mb-3">
                     Add these to your backend .env file:
                   </p>
                   <div className="space-y-2">
                     {[
-                      { key: 'META_APP_ID', value: 'your_app_id' },
-                      { key: 'META_APP_SECRET', value: 'your_app_secret' },
-                      { key: 'META_OAUTH_REDIRECT_URI', value: 'http://localhost:3000/api/instagram/callback' },
+                      { key: "META_APP_ID", value: "your_app_id" },
+                      { key: "META_APP_SECRET", value: "your_app_secret" },
+                      {
+                        key: "META_OAUTH_REDIRECT_URI",
+                        value: "http://localhost:3000/api/instagram/callback",
+                      },
                     ].map((env) => (
-                      <div key={env.key} className="flex items-center gap-2 bg-background-secondary rounded px-3 py-2">
+                      <div
+                        key={env.key}
+                        className="flex items-center gap-2 bg-background-secondary rounded px-3 py-2">
                         <code className="flex-1 text-xs text-foreground-muted">
                           {env.key}={env.value}
                         </code>
                         <button
-                          onClick={() => copyToClipboard(`${env.key}=${env.value}`, env.key)}
-                          className="p-1 hover:bg-background-elevated rounded"
-                        >
+                          onClick={() =>
+                            copyToClipboard(`${env.key}=${env.value}`, env.key)
+                          }
+                          className="p-1 hover:bg-background-elevated rounded">
                           {copied === env.key ? (
                             <Check className="h-3 w-3 text-success" />
                           ) : (
@@ -1296,7 +1473,9 @@ export default function InstagramSettingsPage() {
                 </div>
 
                 <div className="bg-background-elevated rounded-lg p-4">
-                  <h3 className="font-medium text-foreground mb-2">3. Start the Backend Server</h3>
+                  <h3 className="font-medium text-foreground mb-2">
+                    3. Start the Backend Server
+                  </h3>
                   <p className="text-sm text-foreground-muted mb-2">
                     Run the NestJS backend on port 3000:
                   </p>
@@ -1305,10 +1484,14 @@ export default function InstagramSettingsPage() {
                       cd backend && npm run start:dev
                     </code>
                     <button
-                      onClick={() => copyToClipboard('cd backend && npm run start:dev', 'cmd')}
-                      className="p-1 hover:bg-background-elevated rounded"
-                    >
-                      {copied === 'cmd' ? (
+                      onClick={() =>
+                        copyToClipboard(
+                          "cd backend && npm run start:dev",
+                          "cmd"
+                        )
+                      }
+                      className="p-1 hover:bg-background-elevated rounded">
+                      {copied === "cmd" ? (
                         <Check className="h-3 w-3 text-success" />
                       ) : (
                         <Copy className="h-3 w-3 text-foreground-muted" />
@@ -1319,7 +1502,10 @@ export default function InstagramSettingsPage() {
               </div>
 
               <div className="flex items-center gap-3 pt-4 border-t border-border">
-                <Button variant="secondary" onClick={() => setShowSetupModal(false)} className="flex-1">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowSetupModal(false)}
+                  className="flex-1">
                   Close
                 </Button>
               </div>
@@ -1338,30 +1524,51 @@ export default function InstagramSettingsPage() {
                   <Cookie className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">Connect with Browser Cookies</h2>
-                  <p className="text-xs text-foreground-muted">Use your existing Instagram session</p>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Connect with Browser Cookies
+                  </h2>
+                  <p className="text-xs text-foreground-muted">
+                    Use your existing Instagram session
+                  </p>
                 </div>
               </div>
               <button
-                onClick={() => { setShowCookieModal(false); setCookieUser(null); }}
-                className="p-2 rounded-lg hover:bg-background-elevated text-foreground-muted hover:text-foreground transition-colors"
-              >
+                onClick={() => {
+                  setShowCookieModal(false);
+                  setCookieUser(null);
+                }}
+                className="p-2 rounded-lg hover:bg-background-elevated text-foreground-muted hover:text-foreground transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-6">
               {/* Instructions */}
               <div className="bg-background-elevated rounded-xl p-4 space-y-3">
                 <h3 className="font-medium text-foreground flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center">?</span>
+                  <span className="h-5 w-5 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center">
+                    ?
+                  </span>
                   How to get your Instagram cookies
                 </h3>
                 <ol className="text-sm text-foreground-muted space-y-2 ml-7 list-decimal">
                   <li>Open Instagram.com in your browser and login</li>
                   <li>Press F12 to open Developer Tools</li>
                   <li>Go to Application tab → Cookies → instagram.com</li>
-                  <li>Copy the values for: <code className="px-1.5 py-0.5 rounded bg-background-secondary text-accent text-xs">sessionid</code>, <code className="px-1.5 py-0.5 rounded bg-background-secondary text-accent text-xs">csrftoken</code>, <code className="px-1.5 py-0.5 rounded bg-background-secondary text-accent text-xs">ds_user_id</code></li>
+                  <li>
+                    Copy the values for:{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-background-secondary text-accent text-xs">
+                      sessionid
+                    </code>
+                    ,{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-background-secondary text-accent text-xs">
+                      csrftoken
+                    </code>
+                    ,{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-background-secondary text-accent text-xs">
+                      ds_user_id
+                    </code>
+                  </li>
                 </ol>
               </div>
 
@@ -1375,7 +1582,12 @@ export default function InstagramSettingsPage() {
                     <input
                       type="text"
                       value={cookies.sessionId}
-                      onChange={(e) => setCookies(prev => ({ ...prev, sessionId: e.target.value }))}
+                      onChange={(e) =>
+                        setCookies((prev) => ({
+                          ...prev,
+                          sessionId: e.target.value,
+                        }))
+                      }
                       placeholder="sessionid cookie value"
                       className="w-full px-4 py-2.5 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors text-sm font-mono"
                     />
@@ -1387,13 +1599,18 @@ export default function InstagramSettingsPage() {
                     <input
                       type="text"
                       value={cookies.csrfToken}
-                      onChange={(e) => setCookies(prev => ({ ...prev, csrfToken: e.target.value }))}
+                      onChange={(e) =>
+                        setCookies((prev) => ({
+                          ...prev,
+                          csrfToken: e.target.value,
+                        }))
+                      }
                       placeholder="csrftoken cookie value"
                       className="w-full px-4 py-2.5 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors text-sm font-mono"
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
@@ -1402,19 +1619,30 @@ export default function InstagramSettingsPage() {
                     <input
                       type="text"
                       value={cookies.dsUserId}
-                      onChange={(e) => setCookies(prev => ({ ...prev, dsUserId: e.target.value }))}
+                      onChange={(e) =>
+                        setCookies((prev) => ({
+                          ...prev,
+                          dsUserId: e.target.value,
+                        }))
+                      }
                       placeholder="ds_user_id cookie value"
                       className="w-full px-4 py-2.5 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors text-sm font-mono"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
-                      IG DID <span className="text-foreground-subtle">(optional)</span>
+                      IG DID{" "}
+                      <span className="text-foreground-subtle">(optional)</span>
                     </label>
                     <input
                       type="text"
                       value={cookies.igDid}
-                      onChange={(e) => setCookies(prev => ({ ...prev, igDid: e.target.value }))}
+                      onChange={(e) =>
+                        setCookies((prev) => ({
+                          ...prev,
+                          igDid: e.target.value,
+                        }))
+                      }
                       placeholder="ig_did cookie value"
                       className="w-full px-4 py-2.5 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors text-sm font-mono"
                     />
@@ -1424,24 +1652,30 @@ export default function InstagramSettingsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
-                      MID <span className="text-foreground-subtle">(optional)</span>
+                      MID{" "}
+                      <span className="text-foreground-subtle">(optional)</span>
                     </label>
                     <input
                       type="text"
                       value={cookies.mid}
-                      onChange={(e) => setCookies(prev => ({ ...prev, mid: e.target.value }))}
+                      onChange={(e) =>
+                        setCookies((prev) => ({ ...prev, mid: e.target.value }))
+                      }
                       placeholder="mid cookie value"
                       className="w-full px-4 py-2.5 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors text-sm font-mono"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
-                      RUR <span className="text-foreground-subtle">(optional)</span>
+                      RUR{" "}
+                      <span className="text-foreground-subtle">(optional)</span>
                     </label>
                     <input
                       type="text"
                       value={cookies.rur}
-                      onChange={(e) => setCookies(prev => ({ ...prev, rur: e.target.value }))}
+                      onChange={(e) =>
+                        setCookies((prev) => ({ ...prev, rur: e.target.value }))
+                      }
                       placeholder="rur cookie value"
                       className="w-full px-4 py-2.5 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors text-sm font-mono"
                     />
@@ -1459,10 +1693,14 @@ export default function InstagramSettingsPage() {
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">@{cookieUser.username}</span>
+                      <span className="font-semibold text-foreground">
+                        @{cookieUser.username}
+                      </span>
                       <Badge variant="success">Verified</Badge>
                     </div>
-                    <p className="text-sm text-foreground-muted">{cookieUser.fullName}</p>
+                    <p className="text-sm text-foreground-muted">
+                      {cookieUser.fullName}
+                    </p>
                   </div>
                   <CheckCircle className="h-6 w-6 text-success" />
                 </div>
@@ -1471,31 +1709,43 @@ export default function InstagramSettingsPage() {
               {/* Warning */}
               <div className="bg-warning/10 border border-warning/20 rounded-lg p-3">
                 <p className="text-xs text-warning">
-                  ⚠️ <strong>Security Notice:</strong> Using browser cookies bypasses official API. This approach may violate Instagram&apos;s ToS and could result in account restrictions. Use at your own risk. Never share your cookies with untrusted services.
+                  ⚠️ <strong>Security Notice:</strong> Using browser cookies
+                  bypasses official API. This approach may violate
+                  Instagram&apos;s ToS and could result in account restrictions.
+                  Use at your own risk. Never share your cookies with untrusted
+                  services.
                 </p>
               </div>
 
               {/* Actions */}
               <div className="flex items-center gap-3 pt-2">
-                <Button variant="secondary" onClick={() => { setShowCookieModal(false); setCookieUser(null); }} className="flex-1">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowCookieModal(false);
+                    setCookieUser(null);
+                  }}
+                  className="flex-1">
                   Cancel
                 </Button>
                 {!cookieUser ? (
-                  <Button 
+                  <Button
                     onClick={handleVerifyCookies}
                     isLoading={isVerifyingCookies}
-                    disabled={!cookies.sessionId || !cookies.csrfToken || !cookies.dsUserId}
-                    className="flex-1"
-                  >
+                    disabled={
+                      !cookies.sessionId ||
+                      !cookies.csrfToken ||
+                      !cookies.dsUserId
+                    }
+                    className="flex-1">
                     <CheckCircle className="h-4 w-4" />
                     Verify Session
                   </Button>
                 ) : (
-                  <Button 
+                  <Button
                     onClick={handleConnectWithCookies}
                     isLoading={isVerifyingCookies}
-                    className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                  >
+                    className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
                     <Plus className="h-4 w-4" />
                     Connect Account
                   </Button>
@@ -1516,18 +1766,21 @@ export default function InstagramSettingsPage() {
                   <Instagram className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">Install Chrome Extension</h2>
-                  <p className="text-xs text-foreground-muted">One-click automatic connection</p>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Install Chrome Extension
+                  </h2>
+                  <p className="text-xs text-foreground-muted">
+                    One-click automatic connection
+                  </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowExtractModal(false)}
-                className="p-2 rounded-lg hover:bg-background-elevated text-foreground-muted hover:text-foreground transition-colors"
-              >
+                className="p-2 rounded-lg hover:bg-background-elevated text-foreground-muted hover:text-foreground transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-5">
               {/* Step 1 - Install Extension */}
               <div className="flex gap-4">
@@ -1535,27 +1788,43 @@ export default function InstagramSettingsPage() {
                   1
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-foreground mb-1">Install the Chrome Extension</h3>
+                  <h3 className="font-medium text-foreground mb-1">
+                    Install the Chrome Extension
+                  </h3>
                   <p className="text-sm text-foreground-muted mb-3">
                     Load the extension in Chrome Developer Mode:
                   </p>
                   <ol className="text-sm text-foreground-muted space-y-1 mb-3 list-decimal ml-4">
-                    <li>Open <code className="px-1 py-0.5 rounded bg-background-elevated text-accent text-xs">chrome://extensions</code></li>
+                    <li>
+                      Open{" "}
+                      <code className="px-1 py-0.5 rounded bg-background-elevated text-accent text-xs">
+                        chrome://extensions
+                      </code>
+                    </li>
                     <li>Enable &quot;Developer mode&quot; (top right)</li>
                     <li>Click &quot;Load unpacked&quot;</li>
-                    <li>Select the <code className="px-1 py-0.5 rounded bg-background-elevated text-accent text-xs">extension</code> folder</li>
+                    <li>
+                      Select the{" "}
+                      <code className="px-1 py-0.5 rounded bg-background-elevated text-accent text-xs">
+                        extension
+                      </code>{" "}
+                      folder
+                    </li>
                   </ol>
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => {
-                      navigator.clipboard.writeText('chrome://extensions');
-                      setCopied('extensions-url');
+                      navigator.clipboard.writeText("chrome://extensions");
+                      setCopied("extensions-url");
                       setTimeout(() => setCopied(null), 2000);
-                    }}
-                  >
-                    {copied === 'extensions-url' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copied === 'extensions-url' ? 'Copied!' : 'Copy URL'}
+                    }}>
+                    {copied === "extensions-url" ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    {copied === "extensions-url" ? "Copied!" : "Copy URL"}
                   </Button>
                 </div>
               </div>
@@ -1566,15 +1835,18 @@ export default function InstagramSettingsPage() {
                   2
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-foreground mb-1">Open Instagram</h3>
+                  <h3 className="font-medium text-foreground mb-1">
+                    Open Instagram
+                  </h3>
                   <p className="text-sm text-foreground-muted mb-3">
                     Go to Instagram and make sure you&apos;re logged in.
                   </p>
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => window.open('https://www.instagram.com/', '_blank')}
-                  >
+                    onClick={() =>
+                      window.open("https://www.instagram.com/", "_blank")
+                    }>
                     <ExternalLink className="h-4 w-4" />
                     Open Instagram
                   </Button>
@@ -1587,30 +1859,38 @@ export default function InstagramSettingsPage() {
                   3
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-foreground mb-1">Click Extension → Grab Session</h3>
+                  <h3 className="font-medium text-foreground mb-1">
+                    Click Extension → Grab Session
+                  </h3>
                   <p className="text-sm text-foreground-muted">
-                    While on Instagram, click the SocialOra extension icon and hit &quot;Grab Instagram Session&quot;. 
-                    Your account connects automatically! 🎉
+                    While on Instagram, click the SocialOra extension icon and
+                    hit &quot;Grab Instagram Session&quot;. Your account
+                    connects automatically! 🎉
                   </p>
                 </div>
               </div>
 
               {/* Extension folder path */}
               <div className="bg-background-elevated rounded-xl p-4">
-                <p className="text-xs font-medium text-foreground-muted mb-2">Extension folder location:</p>
+                <p className="text-xs font-medium text-foreground-muted mb-2">
+                  Extension folder location:
+                </p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 text-xs text-accent font-mono bg-background-secondary px-3 py-2 rounded-lg overflow-x-auto">
                     instagram-dm-saas/extension
                   </code>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText('extension');
-                      setCopied('folder');
+                      navigator.clipboard.writeText("extension");
+                      setCopied("folder");
                       setTimeout(() => setCopied(null), 2000);
                     }}
-                    className="p-2 hover:bg-background-secondary rounded-lg"
-                  >
-                    {copied === 'folder' ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4 text-foreground-muted" />}
+                    className="p-2 hover:bg-background-secondary rounded-lg">
+                    {copied === "folder" ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-foreground-muted" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -1618,9 +1898,11 @@ export default function InstagramSettingsPage() {
               {/* Alternative */}
               <div className="border-t border-border pt-4">
                 <button
-                  onClick={() => { setShowExtractModal(false); setShowCookieModal(true); }}
-                  className="text-sm text-foreground-muted hover:text-accent flex items-center gap-2"
-                >
+                  onClick={() => {
+                    setShowExtractModal(false);
+                    setShowCookieModal(true);
+                  }}
+                  className="text-sm text-foreground-muted hover:text-accent flex items-center gap-2">
                   <Cookie className="h-4 w-4" />
                   Or paste cookies manually instead
                 </button>
@@ -1640,31 +1922,41 @@ export default function InstagramSettingsPage() {
                   <Send className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">Quick Send DM</h2>
-                  <p className="text-xs text-foreground-muted">Send a direct message instantly</p>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Quick Send DM
+                  </h2>
+                  <p className="text-xs text-foreground-muted">
+                    Send a direct message instantly
+                  </p>
                 </div>
               </div>
               <button
-                onClick={() => { setShowSendDMModal(false); setDmResult(null); }}
-                className="p-2 rounded-lg hover:bg-background-elevated text-foreground-muted hover:text-foreground transition-colors"
-              >
+                onClick={() => {
+                  setShowSendDMModal(false);
+                  setDmResult(null);
+                }}
+                className="p-2 rounded-lg hover:bg-background-elevated text-foreground-muted hover:text-foreground transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4">
               {/* Cookie check */}
               {!cookies.sessionId && (
                 <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm text-warning font-medium">Cookies Required</p>
+                    <p className="text-sm text-warning font-medium">
+                      Cookies Required
+                    </p>
                     <p className="text-xs text-warning/80 mt-1">
-                      You need to enter your Instagram cookies first. 
-                      <button 
-                        onClick={() => { setShowSendDMModal(false); setShowCookieModal(true); }}
-                        className="underline ml-1"
-                      >
+                      You need to enter your Instagram cookies first.
+                      <button
+                        onClick={() => {
+                          setShowSendDMModal(false);
+                          setShowCookieModal(true);
+                        }}
+                        className="underline ml-1">
                         Connect with cookies
                       </button>
                     </p>
@@ -1676,32 +1968,53 @@ export default function InstagramSettingsPage() {
               {!cookies.sessionId && (
                 <div className="grid gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-foreground-muted mb-1.5">Session ID</label>
+                    <label className="block text-xs font-medium text-foreground-muted mb-1.5">
+                      Session ID
+                    </label>
                     <input
                       type="text"
                       value={cookies.sessionId}
-                      onChange={(e) => setCookies(prev => ({ ...prev, sessionId: e.target.value }))}
+                      onChange={(e) =>
+                        setCookies((prev) => ({
+                          ...prev,
+                          sessionId: e.target.value,
+                        }))
+                      }
                       placeholder="Paste sessionid here"
                       className="w-full px-3 py-2 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent outline-none text-sm font-mono"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-foreground-muted mb-1.5">CSRF Token</label>
+                      <label className="block text-xs font-medium text-foreground-muted mb-1.5">
+                        CSRF Token
+                      </label>
                       <input
                         type="text"
                         value={cookies.csrfToken}
-                        onChange={(e) => setCookies(prev => ({ ...prev, csrfToken: e.target.value }))}
+                        onChange={(e) =>
+                          setCookies((prev) => ({
+                            ...prev,
+                            csrfToken: e.target.value,
+                          }))
+                        }
                         placeholder="csrftoken"
                         className="w-full px-3 py-2 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent outline-none text-sm font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-foreground-muted mb-1.5">DS User ID</label>
+                      <label className="block text-xs font-medium text-foreground-muted mb-1.5">
+                        DS User ID
+                      </label>
                       <input
                         type="text"
                         value={cookies.dsUserId}
-                        onChange={(e) => setCookies(prev => ({ ...prev, dsUserId: e.target.value }))}
+                        onChange={(e) =>
+                          setCookies((prev) => ({
+                            ...prev,
+                            dsUserId: e.target.value,
+                          }))
+                        }
                         placeholder="ds_user_id"
                         className="w-full px-3 py-2 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent outline-none text-sm font-mono"
                       />
@@ -1716,7 +2029,9 @@ export default function InstagramSettingsPage() {
                   Recipient Username
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted">@</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted">
+                    @
+                  </span>
                   <input
                     type="text"
                     value={dmRecipient}
@@ -1739,24 +2054,33 @@ export default function InstagramSettingsPage() {
                   rows={4}
                   className="w-full px-4 py-2.5 rounded-lg bg-background-elevated border border-border text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors resize-none"
                 />
-                <p className="text-xs text-foreground-muted mt-1">{dmMessage.length} characters</p>
+                <p className="text-xs text-foreground-muted mt-1">
+                  {dmMessage.length} characters
+                </p>
               </div>
 
               {/* Result */}
               {dmResult && (
-                <div className={cn(
-                  "rounded-lg p-3 flex items-center gap-3",
-                  dmResult.success ? "bg-success/10 border border-success/20" : "bg-error/10 border border-error/20"
-                )}>
+                <div
+                  className={cn(
+                    "rounded-lg p-3 flex items-center gap-3",
+                    dmResult.success
+                      ? "bg-success/10 border border-success/20"
+                      : "bg-error/10 border border-error/20"
+                  )}>
                   {dmResult.success ? (
                     <>
                       <CheckCircle className="h-5 w-5 text-success flex-shrink-0" />
-                      <p className="text-sm text-success">Message sent successfully!</p>
+                      <p className="text-sm text-success">
+                        Message sent successfully!
+                      </p>
                     </>
                   ) : (
                     <>
                       <AlertCircle className="h-5 w-5 text-error flex-shrink-0" />
-                      <p className="text-sm text-error">{dmResult.error || 'Failed to send message'}</p>
+                      <p className="text-sm text-error">
+                        {dmResult.error || "Failed to send message"}
+                      </p>
                     </>
                   )}
                 </div>
@@ -1764,15 +2088,26 @@ export default function InstagramSettingsPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-3 pt-2">
-                <Button variant="secondary" onClick={() => { setShowSendDMModal(false); setDmResult(null); }} className="flex-1">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowSendDMModal(false);
+                    setDmResult(null);
+                  }}
+                  className="flex-1">
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={handleSendDM}
                   isLoading={isSendingDM}
-                  disabled={!cookies.sessionId || !cookies.csrfToken || !cookies.dsUserId || !dmRecipient.trim() || !dmMessage.trim()}
-                  className="flex-1"
-                >
+                  disabled={
+                    !cookies.sessionId ||
+                    !cookies.csrfToken ||
+                    !cookies.dsUserId ||
+                    !dmRecipient.trim() ||
+                    !dmMessage.trim()
+                  }
+                  className="flex-1">
                   <Send className="h-4 w-4" />
                   Send Message
                 </Button>
