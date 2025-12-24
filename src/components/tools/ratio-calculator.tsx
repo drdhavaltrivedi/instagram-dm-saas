@@ -8,14 +8,14 @@ export function RatioCalculator() {
       id: 'followers',
       label: 'Follower Count',
       placeholder: 'Enter your follower count',
-      type: 'number',
+      type: 'number' as const,
       required: true,
     },
     {
       id: 'following',
       label: 'Following Count',
       placeholder: 'Enter your following count',
-      type: 'number',
+      type: 'number' as const,
       required: true,
     },
   ];

@@ -14,7 +14,7 @@ export function MetricsQuiz() {
       id: 'email',
       label: 'Email Address',
       placeholder: 'Enter your email',
-      type: 'email',
+      type: 'email' as const,
       required: true,
     },
     {
