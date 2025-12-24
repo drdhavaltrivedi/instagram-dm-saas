@@ -91,7 +91,7 @@ async function verifySession(cookies) {
 async function startInstagramConnection() {
   try {
     const tab = await chrome.tabs.create({
-      url: 'https://www.instagram.com/',
+      url: "https://www.instagram.com/",
       // Open login tab in the background to avoid stealing focus
       active: false,
     });
@@ -100,28 +100,45 @@ async function startInstagramConnection() {
 
     chrome.storage.local.set({
       socialora_instagram_tab_id: instagramTabId,
-      socialora_connection_state: 'connecting',
+      socialora_connection_state: "connecting",
     });
 
-    chrome.runtime.sendMessage({
-      type: 'CONNECTION_STATUS',
-      state: 'connecting',
-    });
+    chrome.runtime.sendMessage(
+      {
+        type: "CONNECTION_STATUS",
+        state: "connecting",
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          // Popup might not be open, ignore the error
+          console.log(
+            "No receiver for CONNECTION_STATUS message (popup may be closed)"
+          );
+        }
+      }
+    );
 
     pollForInstagramLogin(instagramTabId);
 
     return { success: true };
   } catch (error) {
-    console.error('Failed to start Instagram connection:', error);
-    return { success: false, error: error.message || 'Failed to open Instagram tab' };
+    console.error("Failed to start Instagram connection:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to open Instagram tab",
+    };
   }
 }
 
 async function stopInstagramConnection() {
   const state = await new Promise((resolve) => {
     chrome.storage.local.get(
-      ['socialora_instagram_tab_id', 'socialora_connection_state', 'socialora_connected_user'],
-      (data) => resolve(data),
+      [
+        "socialora_instagram_tab_id",
+        "socialora_connection_state",
+        "socialora_connected_user",
+      ],
+      (data) => resolve(data)
     );
   });
 
@@ -136,18 +153,28 @@ async function stopInstagramConnection() {
     }
   }
 
-  const newState = connectedUser ? 'connected' : 'idle';
+  const newState = connectedUser ? "connected" : "idle";
 
   chrome.storage.local.set({
     socialora_instagram_tab_id: null,
     socialora_connection_state: newState,
   });
 
-  chrome.runtime.sendMessage({
-    type: 'CONNECTION_STATUS',
-    state: newState,
-    user: connectedUser,
-  });
+  chrome.runtime.sendMessage(
+    {
+      type: "CONNECTION_STATUS",
+      state: newState,
+      user: connectedUser,
+    },
+    () => {
+      if (chrome.runtime.lastError) {
+        // Popup might not be open, ignore the error
+        console.log(
+          "No receiver for CONNECTION_STATUS message (popup may be closed)"
+        );
+      }
+    }
+  );
 
   return { success: true, state: newState, user: connectedUser };
 }
@@ -175,14 +202,24 @@ function pollForInstagramLogin(instagramTabId) {
     if (cookies.sessionId && cookies.dsUserId) {
       clearInterval(intervalId);
       handleCookiesReady(cookies).catch((err) => {
-        console.error('Failed to handle cookies:', err);
-        chrome.runtime.sendMessage({
-          type: 'CONNECTION_STATUS',
-          state: 'idle',
-          error: err.message || 'Failed to verify Instagram session',
-        });
+        console.error("Failed to handle cookies:", err);
+        chrome.runtime.sendMessage(
+          {
+            type: "CONNECTION_STATUS",
+            state: "idle",
+            error: err.message || "Failed to verify Instagram session",
+          },
+          () => {
+            if (chrome.runtime.lastError) {
+              // Popup might not be open, ignore the error
+              console.log(
+                "No receiver for CONNECTION_STATUS message (popup may be closed)"
+              );
+            }
+          }
+        );
         chrome.storage.local.set({
-          socialora_connection_state: 'idle',
+          socialora_connection_state: "idle",
         });
       });
       return;
@@ -190,13 +227,23 @@ function pollForInstagramLogin(instagramTabId) {
 
     if (attempts >= maxAttempts) {
       clearInterval(intervalId);
-      chrome.runtime.sendMessage({
-        type: 'CONNECTION_STATUS',
-        state: 'idle',
-        error: 'Login timeout. Please try again.',
-      });
+      chrome.runtime.sendMessage(
+        {
+          type: "CONNECTION_STATUS",
+          state: "idle",
+          error: "Login timeout. Please try again.",
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+            // Popup might not be open, ignore the error
+            console.log(
+              "No receiver for CONNECTION_STATUS message (popup may be closed)"
+            );
+          }
+        }
+      );
       chrome.storage.local.set({
-        socialora_connection_state: 'idle',
+        socialora_connection_state: "idle",
       });
     }
   }, 2000);
@@ -205,7 +252,11 @@ function pollForInstagramLogin(instagramTabId) {
 async function handleCookiesReady(cookies) {
   const verifyResult = await verifySession(cookies);
   if (!verifyResult || !verifyResult.success) {
-    throw new Error(verifyResult?.error || verifyResult?.message || 'Session verification failed');
+    throw new Error(
+      verifyResult?.error ||
+        verifyResult?.message ||
+        "Session verification failed"
+    );
   }
 
   const user = verifyResult.user;
@@ -216,18 +267,28 @@ async function handleCookiesReady(cookies) {
   });
 
   chrome.storage.local.set({
-    socialora_connection_state: 'connected',
+    socialora_connection_state: "connected",
     socialora_connected_user: user,
   });
 
-  chrome.runtime.sendMessage({
-    type: 'CONNECTION_COMPLETE',
-    user,
-  });
+  chrome.runtime.sendMessage(
+    {
+      type: "CONNECTION_COMPLETE",
+      user,
+    },
+    () => {
+      if (chrome.runtime.lastError) {
+        // Popup might not be open, ignore the error
+        console.log(
+          "No receiver for CONNECTION_COMPLETE message (popup may be closed)"
+        );
+      }
+    }
+  );
 
   // Open Socialora app and transfer cookies using existing content-script flow
   const config = await CONFIG.getCurrent();
-  const cleanAppUrl = config.APP_URL.replace(/\/+$/, '');
+  const cleanAppUrl = config.APP_URL.replace(/\/+$/, "");
   const accountMetadata = {
     igUserId: user.pk,
     username: user.username,
@@ -239,16 +300,17 @@ async function handleCookiesReady(cookies) {
 
   // Prefer reusing an existing app tab if one is already open
   chrome.tabs.query({ url: [`${cleanAppUrl}/*`] }, (tabs) => {
-    const targetTab =
-      (tabs && tabs.length > 0
-        ? tabs[0]
-        : null);
+    const targetTab = tabs && tabs.length > 0 ? tabs[0] : null;
 
     const openOrUpdate = (cb) => {
       if (targetTab && targetTab.id != null) {
-        chrome.tabs.update(targetTab.id, { url: redirectUrl, active: true }, (updated) => {
-          cb(updated);
-        });
+        chrome.tabs.update(
+          targetTab.id,
+          { url: redirectUrl, active: true },
+          (updated) => {
+            cb(updated);
+          }
+        );
       } else {
         chrome.tabs.create({ url: redirectUrl, active: true }, (created) => {
           cb(created);
@@ -261,68 +323,71 @@ async function handleCookiesReady(cookies) {
       const tabId = tab.id;
 
       const sendCookiesToPage = (tabId, retryCount = 0) => {
-      const maxRetries = 10;
-      const retryDelay = 300;
+        const maxRetries = 10;
+        const retryDelay = 300;
 
-      chrome.tabs.sendMessage(
-        tabId,
-        {
-          type: 'SAVE_COOKIES',
-          userId: user.pk,
-          cookies,
-        },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            if (retryCount < maxRetries) {
-              setTimeout(() => sendCookiesToPage(tabId, retryCount + 1), retryDelay);
-            } else {
+        chrome.tabs.sendMessage(
+          tabId,
+          {
+            type: "SAVE_COOKIES",
+            userId: user.pk,
+            cookies,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              if (retryCount < maxRetries) {
+                setTimeout(
+                  () => sendCookiesToPage(tabId, retryCount + 1),
+                  retryDelay
+                );
+              } else {
+                injectCookiesViaScript(tabId);
+              }
+            } else if (!response || !response.success) {
               injectCookiesViaScript(tabId);
             }
-          } else if (!response || !response.success) {
-            injectCookiesViaScript(tabId);
           }
-        },
-      );
-    };
+        );
+      };
 
       const injectCookiesViaScript = (tabId) => {
-      chrome.scripting
-        .executeScript({
-          target: { tabId },
-          func: (userId, cookieData) => {
-            const storageKey = 'socialora_cookies_' + userId;
-            try {
-              const cookiesJson = JSON.stringify(cookieData);
-              localStorage.setItem(storageKey, cookiesJson);
-              sessionStorage.setItem(storageKey, cookiesJson);
-              window.dispatchEvent(
-                new CustomEvent('socialora_cookies_saved', {
-                  detail: { userId, storageKey, cookies: cookieData },
-                }),
-              );
-              window.postMessage(
-                {
-                  type: 'SOCIALORA_COOKIES_SAVED',
-                  userId,
-                  cookies: cookieData,
-                  storageKey,
-                },
-                window.location.origin,
-              );
-              return { success: true, storageKey };
-            } catch (e) {
-              return { success: false, error: e.message };
-            }
-          },
-          args: [user.pk, cookies],
-        })
-        .catch(() => {
-          // Best-effort; if this fails the page can still request cookies via content script.
-        });
-    };
+        chrome.scripting
+          .executeScript({
+            target: { tabId },
+            func: (userId, cookieData) => {
+              const storageKey = "socialora_cookies_" + userId;
+              try {
+                const cookiesJson = JSON.stringify(cookieData);
+                localStorage.setItem(storageKey, cookiesJson);
+                sessionStorage.setItem(storageKey, cookiesJson);
+                window.dispatchEvent(
+                  new CustomEvent("socialora_cookies_saved", {
+                    detail: { userId, storageKey, cookies: cookieData },
+                  })
+                );
+                window.postMessage(
+                  {
+                    type: "SOCIALORA_COOKIES_SAVED",
+                    userId,
+                    cookies: cookieData,
+                    storageKey,
+                  },
+                  window.location.origin
+                );
+                return { success: true, storageKey };
+              } catch (e) {
+                return { success: false, error: e.message };
+              }
+            },
+            args: [user.pk, cookies],
+          })
+          .catch(() => {
+            // Best-effort; if this fails the page can still request cookies via content script.
+          });
+      };
 
       const listener = (updatedTabId, changeInfo) => {
-        if (updatedTabId === tabId && changeInfo.status === 'complete') {
+        if (updatedTabId === tabId && changeInfo.status === "complete") {
           sendCookiesToPage(tabId);
           chrome.tabs.onUpdated.removeListener(listener);
         }

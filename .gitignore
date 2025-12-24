@@ -132,3 +132,5 @@ next-env.d.ts
 .env.local
 .vercel
 .cursor/
+
+*.md
