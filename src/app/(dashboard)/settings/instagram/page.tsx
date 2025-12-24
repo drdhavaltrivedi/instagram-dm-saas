@@ -2,32 +2,31 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
-import { 
-  Instagram, 
-  Plus, 
-  Trash2, 
-  RefreshCw, 
-  CheckCircle, 
-  AlertCircle, 
-  ExternalLink,
-  X,
-  Copy,
-  Check,
-  Cookie,
-  Send,
-  MessageSquare,
-  Loader2
-} from 'lucide-react';
 import { Header } from '@/components/layout/header';
-import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
-import type { InstagramAccount } from '@/types';
+import { Button } from '@/components/ui/button';
 import { usePostHog } from '@/hooks/use-posthog';
+import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
+import type { InstagramAccount } from '@/types';
+import {
+    AlertCircle,
+    Check,
+    CheckCircle,
+    Cookie,
+    Copy,
+    ExternalLink,
+    Instagram,
+    Loader2,
+    Plus,
+    RefreshCw,
+    Send,
+    Trash2,
+    X
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID;
 const META_OAUTH_REDIRECT_URI = process.env.NEXT_PUBLIC_META_OAUTH_REDIRECT_URI || `${typeof window !== 'undefined' ? window.location.origin : ''}/api/instagram/callback`;
@@ -666,7 +665,7 @@ export default function InstagramSettingsPage() {
     // Open Instagram in a new tab and show instructions to use the extension
     window.open('https://www.instagram.com/', '_blank');
     toast.info('Reconnect Instructions', {
-      description: `To reconnect @${account.igUsername}:\n\n1. Make sure you're logged in to @${account.igUsername} on Instagram\n2. Click the Socialora extension icon\n3. Click "Grab Instagram Session"\n\nYour cookies will be updated automatically.`,
+      description: `To reconnect @${account.igUsername}:\n\n1. Make sure you're logged in to @${account.igUsername} on Instagram\n2. Click the SocialOra extension icon\n3. Click "Grab Instagram Session"\n\nYour cookies will be updated automatically.`,
       duration: 8000,
     });
   };
@@ -974,99 +973,23 @@ export default function InstagramSettingsPage() {
           </div>
         )}
 
-        {/* Connection Card */}
-        <div className="bg-gradient-to-br from-background-secondary to-background-tertiary rounded-2xl border border-border p-8 mb-8">
-          <div className="flex items-start gap-6">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center flex-shrink-0">
-              <Instagram className="h-8 w-8 text-white" />
-            </div>
 
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                {accounts.length > 0 ? 'Add Another Instagram Account' : 'Connect Your Instagram Account'}
-              </h2>
-              <p className="text-foreground-muted mb-4 max-w-xl">
-                {accounts.length > 0 ? (
-                  <>
-                    You can connect <strong>multiple Instagram accounts</strong> to manage them all from one place. 
-                    Each account can send DMs independently.
-                  </>
-                ) : (
-                  <>
-                    Install our Chrome extension for <strong>one-click automatic connection</strong>. 
-                    No manual copying needed - just click and connect! Works with any Instagram account.
-                  </>
-                )}
-              </p>
 
-              <div className="flex items-center gap-3 flex-wrap">
-                <Button 
-                  onClick={handleBrowserLogin} 
-                  isLoading={isBrowserLoggingIn}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {accounts.length > 0 ? 'Add Account' : 'Connect with Extension'}
-                </Button>
-
-                {accounts.length > 0 && (
-                  <Button variant="secondary" onClick={() => setShowSendDMModal(true)}>
-                    <Send className="h-4 w-4" />
-                    Quick Send DM
-                  </Button>
-                )}
-
-                <Button variant="ghost" onClick={() => setShowCookieModal(true)}>
-                  <Cookie className="h-4 w-4" />
-                  Manual Connection
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* How it works */}
-        <div className="bg-background-secondary rounded-xl border border-border p-6 mb-8">
-          <h3 className="text-sm font-medium text-foreground mb-4">How It Works (One-Click with Extension)</h3>
-          <div className="grid gap-3">
-            {[
-              'Install our Chrome extension (one-time setup)',
-              'Go to Instagram and login to your account',
-              'Click the extension icon → "Grab Session"',
-              'Done! Start sending DMs instantly 🚀',
-            ].map((step, i) => (
-              <div key={i} className="flex items-center gap-3 text-sm">
-                <span className="h-5 w-5 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center flex-shrink-0">
-                  {i + 1}
-                </span>
-                <span className="text-foreground-muted">{step}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 p-3 rounded-lg bg-success/10 border border-success/20">
-            <p className="text-xs text-success">
-              ✅ <strong>Fully automated:</strong> No manual copying - extension grabs everything automatically!
-            </p>
-          </div>
-        </div>
-
-        {/* Connected Accounts */}
-        <div>
+        {/* Connected Accounts - First Section */}
+        <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-foreground">
               Connected Accounts ({accounts.length})
             </h3>
-            {accounts.length > 0 && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleBrowserLogin}
-                isLoading={isBrowserLoggingIn}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Another Account
-              </Button>
-            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleBrowserLogin}
+              isLoading={isBrowserLoggingIn}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Another Account
+            </Button>
           </div>
 
           {isLoading ? (
@@ -1085,7 +1008,23 @@ export default function InstagramSettingsPage() {
             </div>
           ) : accounts?.length ? (
             <div className="space-y-4">
-              {accounts.map((account, index) => (
+              {accounts
+                .sort((a, b) => {
+                  // Sort by activeness: active accounts with cookies first, then active without cookies, then inactive
+                  const aIsActive = a.isActive && accountsWithCookies.has(a.id);
+                  const bIsActive = b.isActive && accountsWithCookies.has(b.id);
+                  const aIsActiveNoCookies = a.isActive && !accountsWithCookies.has(a.id);
+                  const bIsActiveNoCookies = b.isActive && !accountsWithCookies.has(b.id);
+                  
+                  if (aIsActive && !bIsActive) return -1;
+                  if (!aIsActive && bIsActive) return 1;
+                  if (aIsActiveNoCookies && !bIsActiveNoCookies && !bIsActive) return -1;
+                  if (!aIsActiveNoCookies && bIsActiveNoCookies && !aIsActive) return 1;
+                  
+                  // If same status, sort by creation date (newest first)
+                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                })
+                .map((account, index) => (
                 <div
                   key={account.id}
                   className={cn(
@@ -1211,6 +1150,82 @@ export default function InstagramSettingsPage() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Connection Card */}
+        <div className="bg-gradient-to-br from-background-secondary to-background-tertiary rounded-2xl border border-border p-8 mb-8">
+          <div className="flex items-start gap-6">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center flex-shrink-0">
+              <Instagram className="h-8 w-8 text-white" />
+            </div>
+
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-foreground mb-2">
+                {accounts.length > 0 ? 'Add Another Instagram Account' : 'Connect Your Instagram Account'}
+              </h2>
+              <p className="text-foreground-muted mb-4 max-w-xl">
+                {accounts.length > 0 ? (
+                  <>
+                    You can connect <strong>multiple Instagram accounts</strong> to manage them all from one place. 
+                    Each account can send DMs independently.
+                  </>
+                ) : (
+                  <>
+                    Install our Chrome extension for <strong>one-click automatic connection</strong>. 
+                    No manual copying needed - just click and connect! Works with any Instagram account.
+                  </>
+                )}
+              </p>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <Button 
+                  onClick={handleBrowserLogin} 
+                  isLoading={isBrowserLoggingIn}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {accounts.length > 0 ? 'Add Account' : 'Connect with Extension'}
+                </Button>
+
+                {accounts.length > 0 && (
+                  <Button variant="secondary" onClick={() => setShowSendDMModal(true)}>
+                    <Send className="h-4 w-4" />
+                    Quick Send DM
+                  </Button>
+                )}
+
+                <Button variant="ghost" onClick={() => setShowCookieModal(true)}>
+                  <Cookie className="h-4 w-4" />
+                  Manual Connection
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* How it works */}
+        <div className="bg-background-secondary rounded-xl border border-border p-6 mb-8">
+          <h3 className="text-sm font-medium text-foreground mb-4">How It Works (One-Click with Extension)</h3>
+          <div className="grid gap-3">
+            {[
+              'Install our Chrome extension (one-time setup)',
+              'Go to Instagram and login to your account',
+              'Click the extension icon → "Grab Session"',
+              'Done! Start sending DMs instantly 🚀',
+            ].map((step, i) => (
+              <div key={i} className="flex items-center gap-3 text-sm">
+                <span className="h-5 w-5 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center flex-shrink-0">
+                  {i + 1}
+                </span>
+                <span className="text-foreground-muted">{step}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 p-3 rounded-lg bg-success/10 border border-success/20">
+            <p className="text-xs text-success">
+              ✅ <strong>Fully automated:</strong> No manual copying - extension grabs everything automatically!
+            </p>
+          </div>
         </div>
       </div>
 
@@ -1574,7 +1589,7 @@ export default function InstagramSettingsPage() {
                 <div className="flex-1">
                   <h3 className="font-medium text-foreground mb-1">Click Extension → Grab Session</h3>
                   <p className="text-sm text-foreground-muted">
-                    While on Instagram, click the Socialora extension icon and hit &quot;Grab Instagram Session&quot;. 
+                    While on Instagram, click the SocialOra extension icon and hit &quot;Grab Instagram Session&quot;. 
                     Your account connects automatically! 🎉
                   </p>
                 </div>

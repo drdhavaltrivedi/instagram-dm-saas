@@ -23,7 +23,7 @@ export const blogPosts: BlogPost[] = [
     readTime: '12 min',
     category: 'Cold DM Automation',
     keywords: ['cold DM automation', 'Instagram cold DM', 'automated outreach', 'Instagram DM automation', 'cold messaging automation'],
-    metaTitle: 'Complete Guide to Cold DM Automation on Instagram 2025 | Socialora',
+    metaTitle: 'Complete Guide to Cold DM Automation on Instagram 2025 | SocialOra',
     metaDescription: 'Learn everything about cold DM automation on Instagram. Strategies, tools, best practices, and how to scale your outreach safely in 2025.',
     featured: true,
     content: `
@@ -44,7 +44,7 @@ export const blogPosts: BlogPost[] = [
       </ul>
 
       <h2>How Cold DM Automation Works</h2>
-      <p>Modern cold DM automation tools like Socialora use advanced technology to:</p>
+      <p>Modern cold DM automation tools like SocialOra use advanced technology to:</p>
 
       <ol>
         <li><strong>Identify Target Audience:</strong> Use hashtags, locations, competitor followers, or custom criteria to find prospects</li>
@@ -146,7 +146,7 @@ export const blogPosts: BlogPost[] = [
       <h2>Conclusion</h2>
       <p>Cold DM automation on Instagram is no longer optional—it's essential for businesses that want to scale their outreach and grow their audience. By following best practices, choosing the right tools, and continuously optimizing your approach, you can achieve remarkable results while staying safe from Instagram's restrictions.</p>
 
-      <p>Ready to get started? <a href="/signup">Try Socialora free</a> and experience the power of AI-powered cold DM automation.</p>
+      <p>Ready to get started? <a href="/signup">Try SocialOra free</a> and experience the power of AI-powered cold DM automation.</p>
     `,
   },
   {
@@ -427,7 +427,7 @@ export const blogPosts: BlogPost[] = [
 
       <p>The question isn't whether you should automate—it's which tool you'll choose and how quickly you'll start seeing results.</p>
 
-      <p>Ready to transform your Instagram strategy? <a href="/signup">Start your free trial of Socialora</a> and join thousands of businesses growing with automation.</p>
+      <p>Ready to transform your Instagram strategy? <a href="/signup">Start your free trial of SocialOra</a> and join thousands of businesses growing with automation.</p>
     `,
   },
   {
@@ -438,7 +438,7 @@ export const blogPosts: BlogPost[] = [
     readTime: '15 min',
     category: 'Tools & Reviews',
     keywords: ['Instagram DM automation tools', 'best automation tools', 'DM automation software', 'Instagram tools comparison', 'automation tools review'],
-    metaTitle: 'Best Instagram DM Automation Tools 2025: Complete Comparison | Socialora',
+    metaTitle: 'Best Instagram DM Automation Tools 2025: Complete Comparison | SocialOra',
     metaDescription: 'Compare the best Instagram DM automation tools in 2025. Features, pricing, pros & cons, and find the perfect tool for your business.',
     content: `
       <h2>Introduction: Choosing the Right Instagram DM Automation Tool</h2>
@@ -468,7 +468,7 @@ export const blogPosts: BlogPost[] = [
 
       <h2>Top Instagram DM Automation Tools in 2025</h2>
 
-      <h3>1. Socialora</h3>
+      <h3>1. SocialOra</h3>
       <p><strong>Best For:</strong> Businesses wanting AI-powered automation with advanced personalization</p>
 
       <p><strong>Key Features:</strong></p>
@@ -545,7 +545,7 @@ export const blogPosts: BlogPost[] = [
           <th>Policy Compliance</th>
         </tr>
         <tr>
-          <td>Socialora</td>
+          <td>SocialOra</td>
           <td>✅ Advanced</td>
           <td>✅ Yes</td>
           <td>✅ Full compliance</td>
@@ -566,14 +566,14 @@ export const blogPosts: BlogPost[] = [
 
       <h3>Personalization Capabilities</h3>
       <ul>
-        <li><strong>Socialora:</strong> AI-powered, dynamic fields, conditional logic, behavioral triggers</li>
+        <li><strong>SocialOra:</strong> AI-powered, dynamic fields, conditional logic, behavioral triggers</li>
         <li><strong>ManyChat:</strong> Basic merge tags, user attributes</li>
         <li><strong>Chatfuel:</strong> User attributes, basic personalization</li>
       </ul>
 
       <h3>Targeting Options</h3>
       <ul>
-        <li><strong>Socialora:</strong> Hashtags, locations, competitor followers, custom filters, lead scoring</li>
+        <li><strong>SocialOra:</strong> Hashtags, locations, competitor followers, custom filters, lead scoring</li>
         <li><strong>ManyChat:</strong> Limited (primarily for existing followers)</li>
         <li><strong>Chatfuel:</strong> Limited (chatbot-focused)</li>
       </ul>
@@ -582,7 +582,7 @@ export const blogPosts: BlogPost[] = [
       <p>Understanding pricing is crucial for budget planning:</p>
 
       <ul>
-        <li><strong>Socialora:</strong> $49-299/month (scales with features)</li>
+        <li><strong>SocialOra:</strong> $49-299/month (scales with features)</li>
         <li><strong>ManyChat:</strong> Free - $145/month</li>
         <li><strong>Chatfuel:</strong> Free - $99/month</li>
         <li><strong>Instazood:</strong> $9.99-49.99/month</li>
@@ -591,11 +591,11 @@ export const blogPosts: BlogPost[] = [
       <h2>Use Case Recommendations</h2>
 
       <h3>For E-commerce Businesses</h3>
-      <p><strong>Best Choice:</strong> ManyChat or Socialora</p>
+      <p><strong>Best Choice:</strong> ManyChat or SocialOra</p>
       <p>Why: Strong integration with e-commerce platforms, abandoned cart recovery, customer service automation</p>
 
       <h3>For Lead Generation</h3>
-      <p><strong>Best Choice:</strong> Socialora</p>
+      <p><strong>Best Choice:</strong> SocialOra</p>
       <p>Why: Advanced targeting, cold outreach capabilities, lead scoring, conversion tracking</p>
 
       <h3>For Customer Service</h3>
@@ -603,11 +603,11 @@ export const blogPosts: BlogPost[] = [
       <p>Why: Excellent chatbot features, FAQ automation, instant responses</p>
 
       <h3>For Agencies</h3>
-      <p><strong>Best Choice:</strong> Socialora</p>
+      <p><strong>Best Choice:</strong> SocialOra</p>
       <p>Why: Multi-account management, white-label options, advanced analytics, client reporting</p>
 
       <h3>For Creators/Influencers</h3>
-      <p><strong>Best Choice:</strong> Socialora or ManyChat</p>
+      <p><strong>Best Choice:</strong> SocialOra or ManyChat</p>
       <p>Why: Brand partnership outreach, fan engagement, content promotion</p>
 
       <h2>Making Your Decision</h2>
@@ -643,11 +643,11 @@ export const blogPosts: BlogPost[] = [
       </ul>
 
       <h2>Conclusion</h2>
-      <p>Choosing the right Instagram DM automation tool depends on your specific needs, budget, and goals. While there are many options available, tools like Socialora offer the best combination of advanced features, safety, and value for businesses serious about scaling their Instagram outreach.</p>
+      <p>Choosing the right Instagram DM automation tool depends on your specific needs, budget, and goals. While there are many options available, tools like SocialOra offer the best combination of advanced features, safety, and value for businesses serious about scaling their Instagram outreach.</p>
 
       <p>Remember: The best tool is one that you'll actually use and that delivers results. Start with a free trial, test thoroughly, and choose based on real performance data, not just marketing claims.</p>
 
-      <p>Ready to try Instagram DM automation? <a href="/signup">Start your free trial of Socialora</a> and experience the difference advanced automation makes.</p>
+      <p>Ready to try Instagram DM automation? <a href="/signup">Start your free trial of SocialOra</a> and experience the difference advanced automation makes.</p>
     `,
   },
   {
@@ -658,7 +658,7 @@ export const blogPosts: BlogPost[] = [
     readTime: '11 min',
     category: 'Best Practices',
     keywords: ['Instagram automation best practices', 'avoid Instagram ban', 'safe automation', 'Instagram rate limits', 'automation safety'],
-    metaTitle: 'Instagram Automation Best Practices: Avoid Bans & Stay Safe | Socialora',
+    metaTitle: 'Instagram Automation Best Practices: Avoid Bans & Stay Safe | SocialOra',
     metaDescription: 'Essential Instagram automation best practices to avoid account bans. Learn rate limits, safety tips, and proven strategies for safe automation.',
     content: `
       <h2>Introduction: The Importance of Safe Instagram Automation</h2>
@@ -858,7 +858,7 @@ export const blogPosts: BlogPost[] = [
 
       <p>The key is balance—automate enough to scale, but stay within limits to stay safe. With the right approach, you can enjoy the benefits of automation for years without risking your account.</p>
 
-      <p>Ready to automate safely? <a href="/signup">Try Socialora</a> with built-in safety features and rate limiting to protect your account.</p>
+      <p>Ready to automate safely? <a href="/signup">Try SocialOra</a> with built-in safety features and rate limiting to protect your account.</p>
     `,
   },
   {
@@ -869,7 +869,7 @@ export const blogPosts: BlogPost[] = [
     readTime: '9 min',
     category: 'Cold DM Strategies',
     keywords: ['cold DM strategies', 'DM templates', 'high conversion DMs', 'effective Instagram messages', 'cold DM templates'],
-    metaTitle: 'Cold DM Strategies That Work: 10 High-Conversion Templates | Socialora',
+    metaTitle: 'Cold DM Strategies That Work: 10 High-Conversion Templates | SocialOra',
     metaDescription: 'Proven cold DM strategies and templates that convert. Learn how to write effective Instagram messages and increase response rates.',
     content: `
       <h2>Introduction: The Art of Cold DM Success</h2>

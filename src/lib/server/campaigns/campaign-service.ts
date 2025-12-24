@@ -144,7 +144,7 @@ export class CampaignService {
         }
 
         // Small delay to avoid rate limits
-        await this.delay(1000);
+        await this.delay(5000);
       } catch (error: any) {
         console.error(
           `Error processing recipient ${recipient.id}: ${error?.message}`

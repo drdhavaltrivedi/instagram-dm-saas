@@ -1,11 +1,11 @@
 'use client';
 
-import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
+import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'icon';
   isLoading?: boolean;
 }
 
@@ -24,6 +24,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       sm: 'h-8 px-3 text-sm gap-1.5',
       md: 'h-10 px-4 text-sm gap-2',
       lg: 'h-12 px-6 text-base gap-2',
+      icon: 'h-10 w-10 p-0',
     };
 
     return (

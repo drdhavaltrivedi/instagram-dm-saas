@@ -21,7 +21,7 @@ export function StructuredData({ type = 'WebSite', data }: StructuredDataProps) 
 
   // Organization schema for homepage
   if (type === 'Organization') {
-    structuredData.name = 'Socialora';
+    structuredData.name = 'SocialOra';
     structuredData.url = cleanBaseUrl;
     structuredData.logo = `${cleanBaseUrl}/logo.png`;
     structuredData.description = 'AI-powered Instagram DM automation platform for businesses, creators, and agencies';
@@ -33,7 +33,7 @@ export function StructuredData({ type = 'WebSite', data }: StructuredDataProps) 
 
   // SoftwareApplication schema
   if (type === 'SoftwareApplication') {
-    structuredData.name = 'Socialora';
+    structuredData.name = 'SocialOra';
     structuredData.applicationCategory = 'BusinessApplication';
     structuredData.operatingSystem = 'Web';
     structuredData.offers = {
@@ -51,7 +51,7 @@ export function StructuredData({ type = 'WebSite', data }: StructuredDataProps) 
 
   // WebSite schema
   if (type === 'WebSite') {
-    structuredData.name = 'Socialora';
+    structuredData.name = 'SocialOra';
     structuredData.url = cleanBaseUrl;
     structuredData.potentialAction = {
       '@type': 'SearchAction',
@@ -80,7 +80,7 @@ export function HomepageStructuredData() {
   const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'Socialora',
+    name: 'SocialOra',
     url: cleanBaseUrl,
     logo: `${cleanBaseUrl}/logo.png`,
     description: 'AI-powered Instagram DM automation platform for businesses, creators, and agencies',
@@ -92,7 +92,7 @@ export function HomepageStructuredData() {
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'Customer Service',
-      email: 'support@socialora.app',
+      email: 'digital@socialora.com',
     },
   };
 

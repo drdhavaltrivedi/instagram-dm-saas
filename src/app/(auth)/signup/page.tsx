@@ -2,13 +2,14 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Instagram, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { createClient } from '@/lib/supabase/client';
 import { usePostHog } from '@/hooks/use-posthog';
+import { createClient } from '@/lib/supabase/client';
+import { AlertCircle, ArrowRight, CheckCircle, Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useState } from 'react';
 
 export default function SignupPage() {
   const { capture, identify } = usePostHog();
@@ -18,6 +19,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +110,7 @@ export default function SignupPage() {
             We sent a confirmation link to <span className="text-foreground font-medium">{email}</span>
           </p>
           <p className="text-sm text-foreground-muted mb-8">
-            Click the link in the email to activate your account and start using Socialora.
+            Click the link in the email to activate your account and start using SocialOra.
           </p>
           <Link href="/login">
             <Button variant="secondary">Back to login</Button>
@@ -128,12 +130,18 @@ export default function SignupPage() {
         </div>
         
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center shadow-xl shadow-accent/30">
-              <Instagram className="h-6 w-6 text-white" />
+          <div className="flex items-center">
+            <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+              <Image 
+                src="/images/logo.png" 
+                alt="SocialOra" 
+                width={56} 
+                height={56} 
+                className="h-full w-full object-contain" 
+              />
             </div>
-            <span className="font-bold text-2xl tracking-tight">
-              Social<span className="text-accent">ora</span>
+            <span className="font-bold text-xl">
+              Social<span className="text-accent">Ora</span>
             </span>
           </div>
           
@@ -144,7 +152,7 @@ export default function SignupPage() {
               today
             </h1>
             <p className="text-lg text-foreground-muted mb-8">
-              Join thousands of creators and businesses who scale their Instagram outreach with Socialora.
+              Join thousands of creators and businesses who scale their Instagram outreach with SocialOra.
             </p>
             
             <div className="grid grid-cols-3 gap-6">
@@ -172,11 +180,21 @@ export default function SignupPage() {
       {/* Right Panel */}
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-accent to-pink-500 flex items-center justify-center">
-              <Instagram className="h-5 w-5 text-white" />
+          <div className="lg:hidden flex items-center mb-8 justify-center">
+            <div className="flex items-center">
+              <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="SocialOra" 
+                  width={56} 
+                  height={56} 
+                  className="h-full w-full object-contain" 
+                />
+              </div>
+              <span className="font-bold text-xl">
+                Social<span className="text-accent">Ora</span>
+              </span>
             </div>
-            <span className="font-bold text-xl">DM<span className="text-accent">flow</span></span>
           </div>
           
           <div className="text-center mb-8">
@@ -241,11 +259,25 @@ export default function SignupPage() {
             
             <Input
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               leftIcon={<Lock className="h-4 w-4" />}
+              rightIcon={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-foreground-subtle hover:text-foreground transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              }
               required
             />
             

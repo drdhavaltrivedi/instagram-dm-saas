@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest) {
     if (auth instanceof Response) return auth; // Error response
 
     const body = await request.json();
-    const { firstName, lastName, phone, timezone, bio, name } = body;
+    const { firstName, lastName, phone, timezone, bio, name, avatarUrl } = body;
 
     // Only allow updating own profile
     const updatedUser = await prisma.user.update({
@@ -59,6 +59,7 @@ export async function PUT(request: NextRequest) {
         ...(timezone !== undefined && { timezone }),
         ...(bio !== undefined && { bio }),
         ...(name !== undefined && { name }),
+        ...(avatarUrl !== undefined && { avatarUrl }),
       },
       select: {
         id: true,

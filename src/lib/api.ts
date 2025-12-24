@@ -20,18 +20,20 @@ class ApiClient {
   private workspaceId: string | null = null;
   private userId: string | null = null;
 
-
   setAuth(workspaceId: string, userId: string) {
     this.workspaceId = workspaceId;
     this.userId = userId;
   }
 
-  private async fetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+  private async fetch<T>(
+    endpoint: string,
+    options: FetchOptions = {}
+  ): Promise<T> {
     const { params, ...fetchOptions } = options;
-    
+
     // Use endpoint directly as relative URL (backend and frontend are on same domain)
     let url = endpoint;
-    
+
     if (params) {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
@@ -46,16 +48,16 @@ class ApiClient {
     }
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
     };
 
     // Add auth headers
     if (this.workspaceId) {
-      headers['x-workspace-id'] = this.workspaceId;
+      headers["x-workspace-id"] = this.workspaceId;
     }
     if (this.userId) {
-      headers['x-user-id'] = this.userId;
+      headers["x-user-id"] = this.userId;
     }
 
     const response = await fetch(url, {
@@ -64,7 +66,9 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Request failed' }));
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Request failed" }));
       throw new Error(error.message || `HTTP ${response.status}`);
     }
 
@@ -82,17 +86,22 @@ class ApiClient {
   // ==========================================================================
 
   async getInstagramAccounts(): Promise<InstagramAccount[]> {
-    return this.fetch<InstagramAccount[]>('/api/instagram/accounts');
+    return this.fetch<InstagramAccount[]>("/api/instagram/accounts");
   }
 
   async startInstagramOAuth(): Promise<{ authUrl: string }> {
-    return this.fetch<{ authUrl: string }>('/api/instagram/oauth/start');
+    return this.fetch<{ authUrl: string }>("/api/instagram/oauth/start");
   }
 
-  async disconnectInstagramAccount(accountId: string): Promise<{ success: boolean }> {
-    return this.fetch<{ success: boolean }>(`/api/instagram/accounts/${accountId}/disconnect`, {
-      method: 'POST',
-    });
+  async disconnectInstagramAccount(
+    accountId: string
+  ): Promise<{ success: boolean }> {
+    return this.fetch<{ success: boolean }>(
+      `/api/instagram/accounts/${accountId}/disconnect`,
+      {
+        method: "POST",
+      }
+    );
   }
 
   // ==========================================================================
@@ -105,48 +114,62 @@ class ApiClient {
     page?: number;
     limit?: number;
   }): Promise<Conversation[]> {
-    return this.fetch<Conversation[]>('/api/inbox/conversations', {
+    return this.fetch<Conversation[]>("/api/inbox/conversations", {
       params: options,
     });
   }
 
   async getConversation(conversationId: string): Promise<Conversation> {
-    return this.fetch<Conversation>(`/api/inbox/conversations/${conversationId}`);
+    return this.fetch<Conversation>(
+      `/api/inbox/conversations/${conversationId}`
+    );
   }
 
   async updateConversationStatus(
     conversationId: string,
     status: string
   ): Promise<Conversation> {
-    return this.fetch<Conversation>(`/api/inbox/conversations/${conversationId}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    });
+    return this.fetch<Conversation>(
+      `/api/inbox/conversations/${conversationId}/status`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }
+    );
   }
 
   // ==========================================================================
   // Messages
   // ==========================================================================
 
-  async getMessages(conversationId: string, options?: {
-    page?: number;
-    limit?: number;
-  }): Promise<Message[]> {
-    return this.fetch<Message[]>(`/api/inbox/conversations/${conversationId}/messages`, {
-      params: options,
-    });
+  async getMessages(
+    conversationId: string,
+    options?: {
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<Message[]> {
+    return this.fetch<Message[]>(
+      `/api/inbox/conversations/${conversationId}/messages`,
+      {
+        params: options,
+      }
+    );
   }
 
   async sendMessage(conversationId: string, content: string): Promise<Message> {
-    return this.fetch<Message>(`/api/inbox/conversations/${conversationId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
-    });
+    return this.fetch<Message>(
+      `/api/inbox/conversations/${conversationId}/messages`,
+      {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      }
+    );
   }
 
   async markAsRead(conversationId: string): Promise<void> {
     return this.fetch<void>(`/api/inbox/conversations/${conversationId}/read`, {
-      method: 'POST',
+      method: "POST",
     });
   }
 
@@ -155,7 +178,7 @@ class ApiClient {
   // ==========================================================================
 
   async getCampaigns(): Promise<Campaign[]> {
-    return this.fetch<Campaign[]>('/api/campaigns');
+    return this.fetch<Campaign[]>("/api/campaigns");
   }
 
   async getCampaign(campaignId: string): Promise<Campaign> {
@@ -163,28 +186,31 @@ class ApiClient {
   }
 
   async createCampaign(data: Partial<Campaign>): Promise<Campaign> {
-    return this.fetch<Campaign>('/api/campaigns', {
-      method: 'POST',
+    return this.fetch<Campaign>("/api/campaigns", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  async updateCampaign(campaignId: string, data: Partial<Campaign>): Promise<Campaign> {
+  async updateCampaign(
+    campaignId: string,
+    data: Partial<Campaign>
+  ): Promise<Campaign> {
     return this.fetch<Campaign>(`/api/campaigns/${campaignId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
 
   async startCampaign(campaignId: string): Promise<Campaign> {
     return this.fetch<Campaign>(`/api/campaigns/${campaignId}/start`, {
-      method: 'POST',
+      method: "POST",
     });
   }
 
   async pauseCampaign(campaignId: string): Promise<Campaign> {
     return this.fetch<Campaign>(`/api/campaigns/${campaignId}/pause`, {
-      method: 'POST',
+      method: "POST",
     });
   }
 
@@ -197,13 +223,15 @@ class ApiClient {
     targetPersona: string;
     tone: string;
   }): Promise<{ template: string }> {
-    return this.fetch<{ template: string }>('/api/ai/generate-template', {
-      method: 'POST',
+    return this.fetch<{ template: string }>("/api/ai/generate-template", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
 
-  async getSuggestedReplies(conversationId: string): Promise<{ suggestions: string[] }> {
+  async getSuggestedReplies(
+    conversationId: string
+  ): Promise<{ suggestions: string[] }> {
     return this.fetch<{ suggestions: string[] }>(
       `/api/ai/conversations/${conversationId}/suggestions`
     );
@@ -217,35 +245,40 @@ class ApiClient {
     limit?: number;
     skip?: number;
   }): Promise<any[]> {
-    return this.fetch<any[]>('/api/notifications', {
+    return this.fetch<any[]>("/api/notifications", {
       params: options,
     });
   }
 
   async getUnreadNotifications(limit?: number): Promise<any[]> {
-    return this.fetch<any[]>('/api/notifications/unread', {
+    return this.fetch<any[]>("/api/notifications/unread", {
       params: { limit },
     });
   }
 
   async getUnreadCount(): Promise<{ count: number }> {
-    return this.fetch<{ count: number }>('/api/notifications/unread/count');
+    return this.fetch<{ count: number }>("/api/notifications/unread/count");
   }
 
-  async markNotificationAsRead(notificationId: string): Promise<{ success: boolean }> {
-    return this.fetch<{ success: boolean }>(`/api/notifications/${notificationId}/read`, {
-      method: 'PUT',
-    });
+  async markNotificationAsRead(
+    notificationId: string
+  ): Promise<{ success: boolean }> {
+    return this.fetch<{ success: boolean }>(
+      `/api/notifications/${notificationId}/read`,
+      {
+        method: "PUT",
+      }
+    );
   }
 
   async markAllNotificationsAsRead(): Promise<{ success: boolean }> {
-    return this.fetch<{ success: boolean }>('/api/notifications/read-all', {
-      method: 'PUT',
+    return this.fetch<{ success: boolean }>("/api/notifications/read-all", {
+      method: "PUT",
     });
   }
 
   async getNotificationPreferences(): Promise<any[]> {
-    return this.fetch<any[]>('/api/notifications/preferences');
+    return this.fetch<any[]>("/api/notifications/preferences");
   }
 
   async updateNotificationPreference(
@@ -253,7 +286,7 @@ class ApiClient {
     preferences: { email?: boolean; push?: boolean; inApp?: boolean }
   ): Promise<any> {
     return this.fetch<any>(`/api/notifications/preferences/${type}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(preferences),
     });
   }
@@ -275,7 +308,7 @@ class ApiClient {
     createdAt: Date;
     updatedAt: Date;
   }> {
-    return this.fetch('/api/user/profile');
+    return this.fetch("/api/user/profile");
   }
 
   async updateUserProfile(data: {
@@ -285,9 +318,10 @@ class ApiClient {
     timezone?: string;
     bio?: string;
     name?: string;
+    avatarUrl?: string | null;
   }): Promise<any> {
-    return this.fetch('/api/user/profile', {
-      method: 'PUT',
+    return this.fetch("/api/user/profile", {
+      method: "PUT",
       body: JSON.stringify(data),
     });
   }
