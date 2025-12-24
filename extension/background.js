@@ -90,13 +90,50 @@ async function verifySession(cookies) {
 
 async function startInstagramConnection() {
   try {
-    const tab = await chrome.tabs.create({
-      url: "https://www.instagram.com/",
-      // Open login tab in the background to avoid stealing focus
-      active: false,
+    // Check if there's already a stored Instagram tab
+    const storedState = await new Promise((resolve) => {
+      chrome.storage.local.get(["socialora_instagram_tab_id"], (data) =>
+        resolve(data)
+      );
     });
 
-    const instagramTabId = tab.id;
+    let instagramTabId = null;
+    let tab = null;
+
+    // If there's a stored tab ID, try to reuse it
+    if (storedState.socialora_instagram_tab_id) {
+      try {
+        const existingTab = await chrome.tabs.get(
+          storedState.socialora_instagram_tab_id
+        );
+        // Check if the tab is still valid and is an Instagram tab
+        if (
+          existingTab &&
+          existingTab.url &&
+          (existingTab.url.includes("instagram.com") ||
+            existingTab.url.includes("www.instagram.com"))
+        ) {
+          // Reuse the existing tab
+          tab = existingTab;
+          instagramTabId = existingTab.id;
+          // Optionally activate the tab
+          await chrome.tabs.update(instagramTabId, { active: false });
+        }
+      } catch (e) {
+        // Tab doesn't exist or is invalid, will create a new one
+        console.log("Stored tab no longer exists, creating new tab");
+      }
+    }
+
+    // If no valid tab was found, create a new one
+    if (!tab) {
+      tab = await chrome.tabs.create({
+        url: "https://www.instagram.com/",
+        // Open login tab in the background to avoid stealing focus
+        active: false,
+      });
+      instagramTabId = tab.id;
+    }
 
     chrome.storage.local.set({
       socialora_instagram_tab_id: instagramTabId,
@@ -145,6 +182,7 @@ async function stopInstagramConnection() {
   const tabId = state.socialora_instagram_tab_id;
   const connectedUser = state.socialora_connected_user || null;
 
+  // Close only the associated Instagram tab if it exists
   if (tabId) {
     try {
       await chrome.tabs.remove(tabId);
@@ -153,11 +191,13 @@ async function stopInstagramConnection() {
     }
   }
 
+  // Keep connection state if user was connected - don't reset to idle
   const newState = connectedUser ? "connected" : "idle";
 
   chrome.storage.local.set({
-    socialora_instagram_tab_id: null,
+    socialora_instagram_tab_id: null, // Clear tab ID but keep connection
     socialora_connection_state: newState,
+    // Keep socialora_connected_user unchanged
   });
 
   chrome.runtime.sendMessage(
@@ -165,6 +205,7 @@ async function stopInstagramConnection() {
       type: "CONNECTION_STATUS",
       state: newState,
       user: connectedUser,
+      tabClosed: true, // Indicate tab was closed
     },
     () => {
       if (chrome.runtime.lastError) {
@@ -266,15 +307,45 @@ async function handleCookiesReady(cookies) {
     chrome.storage.local.set({ [storageKey]: cookies }, resolve);
   });
 
+  // Check if Instagram tab is still open
+  const storedState = await new Promise((resolve) => {
+    chrome.storage.local.get(["socialora_instagram_tab_id"], (data) =>
+      resolve(data)
+    );
+  });
+
+  let tabOpen = false;
+  let tabId = storedState.socialora_instagram_tab_id || null;
+
+  if (tabId) {
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      if (
+        tab &&
+        tab.url &&
+        (tab.url.includes("instagram.com") ||
+          tab.url.includes("www.instagram.com"))
+      ) {
+        tabOpen = true;
+      }
+    } catch (e) {
+      // Tab doesn't exist or is invalid
+      tabId = null;
+    }
+  }
+
   chrome.storage.local.set({
     socialora_connection_state: "connected",
     socialora_connected_user: user,
+    socialora_instagram_tab_id: tabId, // Keep tab ID if tab is open
   });
 
   chrome.runtime.sendMessage(
     {
       type: "CONNECTION_COMPLETE",
       user,
+      tabOpen,
+      tabId,
     },
     () => {
       if (chrome.runtime.lastError) {

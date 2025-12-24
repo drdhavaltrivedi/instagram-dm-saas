@@ -74,7 +74,6 @@ chrome.storage.onChanged.addListener(() => {
 
 const grabBtn = document.getElementById('grab-btn');
 const stopBtn = document.getElementById('stop-btn');
-const openAppBtn = document.getElementById('open-app-btn');
 const userInfo = document.getElementById('user-info');
 const userAvatar = document.getElementById('user-avatar');
 const userFullname = document.getElementById('user-fullname');
@@ -123,7 +122,7 @@ function setButtonsDisabled(disabled) {
   if (stopBtn) stopBtn.disabled = disabled;
 }
 
-function applyStateToUI(state, user, error) {
+function applyStateToUI(state, user, error, tabOpen = false) {
   hideAllStatus();
 
   if (state === STATE_IDLE) {
@@ -133,7 +132,6 @@ function applyStateToUI(state, user, error) {
     setButtonsDisabled(false);
     instructions.classList.add("hidden");
     userInfo.classList.add("hidden");
-    openAppBtn.classList.add("hidden");
   } else if (state === STATE_CONNECTING) {
     grabBtn.classList.add("hidden");
     if (stopBtn) stopBtn.classList.remove("hidden");
@@ -142,13 +140,20 @@ function applyStateToUI(state, user, error) {
     showStatus(statusConnecting);
     instructions.classList.add("hidden");
   } else if (state === STATE_CONNECTED) {
-    grabBtn.classList.remove("hidden");
-    if (stopBtn) stopBtn.classList.add("hidden");
-    grabBtn.textContent = "✅ Connected (Reconnect)";
+    // If tab is open, show "PRESS TO STOP", otherwise show "PRESS TO START"
+    if (tabOpen) {
+      grabBtn.classList.add("hidden");
+      if (stopBtn) stopBtn.classList.remove("hidden");
+      stopBtn.textContent = "PRESS TO STOP";
+    } else {
+      grabBtn.classList.remove("hidden");
+      if (stopBtn) stopBtn.classList.add("hidden");
+      grabBtn.textContent = "PRESS TO START";
+    }
     setButtonsDisabled(false);
     instructions.classList.add("hidden");
-    openAppBtn.classList.remove("hidden");
 
+    // Show user info if available
     if (user) {
       userInfo.classList.remove("hidden");
       userFullname.textContent = user.fullName || user.username;
@@ -171,11 +176,32 @@ function applyStateToUI(state, user, error) {
 
 function loadStateAndRender() {
   chrome.storage.local.get(
-    ["socialora_connection_state", "socialora_connected_user"],
-    (result) => {
+    ["socialora_connection_state", "socialora_connected_user", "socialora_instagram_tab_id"],
+    async (result) => {
       const state = result.socialora_connection_state || STATE_IDLE;
       const user = result.socialora_connected_user || null;
-      applyStateToUI(state, user, null);
+      const tabId = result.socialora_instagram_tab_id || null;
+      
+      // Check if tab is still open
+      let tabOpen = false;
+      if (tabId && state === STATE_CONNECTED) {
+        try {
+          const tab = await chrome.tabs.get(tabId);
+          if (
+            tab &&
+            tab.url &&
+            (tab.url.includes("instagram.com") ||
+              tab.url.includes("www.instagram.com"))
+          ) {
+            tabOpen = true;
+          }
+        } catch (e) {
+          // Tab doesn't exist
+          tabOpen = false;
+        }
+      }
+      
+      applyStateToUI(state, user, null, tabOpen);
 
       // Load profile picture if user is connected
       if (user && user.profilePicUrl) {
@@ -245,24 +271,25 @@ async function startConnection() {
   if (!ok) return;
 
   setButtonsDisabled(true);
-  applyStateToUI(STATE_CONNECTING, null, null);
+  applyStateToUI(STATE_CONNECTING, null, null, false);
 
   chrome.runtime.sendMessage({ type: "START_CONNECTION" }, (response) => {
     setButtonsDisabled(false);
     if (chrome.runtime.lastError) {
-      applyStateToUI(STATE_IDLE, null, chrome.runtime.lastError.message);
+      applyStateToUI(STATE_IDLE, null, chrome.runtime.lastError.message, false);
       return;
     }
     if (!response || !response.success) {
       applyStateToUI(
         STATE_IDLE,
         null,
-        response?.error || "Failed to start Instagram connection"
+        response?.error || "Failed to start Instagram connection",
+        false
       );
       return;
     }
     chrome.storage.local.set({ socialora_connection_state: STATE_CONNECTING });
-    applyStateToUI(STATE_CONNECTING, null, null);
+    applyStateToUI(STATE_CONNECTING, null, null, false);
   });
 }
 
@@ -271,18 +298,20 @@ function stopConnection() {
   chrome.runtime.sendMessage({ type: "STOP_CONNECTION" }, (response) => {
     setButtonsDisabled(false);
     if (chrome.runtime.lastError) {
-      applyStateToUI(STATE_IDLE, null, chrome.runtime.lastError.message);
+      applyStateToUI(STATE_IDLE, null, chrome.runtime.lastError.message, false);
       return;
     }
     const state = response?.state || STATE_IDLE;
     const user = response?.user || null;
+    const tabClosed = response?.tabClosed !== undefined ? response.tabClosed : true;
     chrome.storage.local.set(
       {
         socialora_connection_state: state,
         socialora_connected_user: user || null,
       },
       () => {
-        applyStateToUI(state, user, response?.error || null);
+        // Tab is closed, so tabOpen should be false
+        applyStateToUI(state, user, response?.error || null, false);
       }
     );
   });
@@ -291,21 +320,49 @@ function stopConnection() {
 // Background pushes connection updates as it progresses
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "CONNECTION_STATUS") {
+    // Determine if tab is open:
+    // - If tabClosed is explicitly true, tab is closed
+    // - If state is "connecting", tab should be open
+    // - Otherwise, check if we have a stored tab ID
+    let tabOpen = false;
+    if (message.tabClosed === true) {
+      tabOpen = false;
+    } else if (message.state === STATE_CONNECTING) {
+      tabOpen = true; // During connecting, tab should be open
+    } else {
+      // For other states, check storage for tab ID
+      chrome.storage.local.get(["socialora_instagram_tab_id"], (result) => {
+        const hasTabId = !!result.socialora_instagram_tab_id;
+        applyStateToUI(
+          message.state || STATE_IDLE,
+          message.user || null,
+          message.error || null,
+          hasTabId
+        );
+      });
+      return; // Early return since we're handling async
+    }
+    
     applyStateToUI(
       message.state || STATE_IDLE,
       message.user || null,
-      message.error || null
+      message.error || null,
+      tabOpen
     );
   }
   if (message.type === "CONNECTION_COMPLETE") {
     const user = message.user || null;
+    const tabOpen = message.tabOpen || false;
+    const tabId = message.tabId || null;
+    
     chrome.storage.local.set(
       {
         socialora_connection_state: STATE_CONNECTED,
         socialora_connected_user: user,
+        socialora_instagram_tab_id: tabId, // Store tab ID if tab is open
       },
       () => {
-        applyStateToUI(STATE_CONNECTED, user, null);
+        applyStateToUI(STATE_CONNECTED, user, null, tabOpen);
         // Load profile picture after connection
         if (user && user.profilePicUrl) {
           loadProfilePicture(user.profilePicUrl, user.username);
@@ -332,14 +389,6 @@ if (stopBtn) {
   stopBtn.addEventListener("click", stopConnection);
 }
 
-if (openAppBtn) {
-  openAppBtn.addEventListener("click", async () => {
-    const config = await CONFIG.getCurrent();
-    const cleanAppUrl = config.APP_URL.replace(/\/+$/, "");
-    chrome.tabs.create({ url: `${cleanAppUrl}/settings/instagram` });
-    window.close();
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Statistics fetching
