@@ -19,10 +19,10 @@ export function WebViewer() {
       toolName="Web Viewer for Instagram"
       fields={fields}
       usageCount={1654}
+      heroTitle="Web Viewer for Instagram"
+      heroDescription="Browse public profiles and content on the web with a simple viewer."
       heroGradient="from-slate-50 via-gray-50 to-zinc-50 dark:from-slate-950/20 dark:via-gray-950/20 dark:to-zinc-950/20"
       heroBorder="border-slate-200 dark:border-slate-800"
-      heroIcon={<Globe className="h-8 w-8 text-slate-500" />}
-      heroDescription="Browse public profiles and content on the web with a simple viewer."
       seoKeywords={[
         'instagram web viewer',
         'view instagram on web',
