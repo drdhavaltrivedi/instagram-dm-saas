@@ -38,11 +38,6 @@ export async function POST(request: NextRequest) {
     const pageURL = referer || null;
     const previousPage = previous_page || null;
 
-    // Start location lookup (non-blocking) - only if not localhost
-    const locationPromise = isLocalhost
-      ? Promise.resolve(null)
-      : getIPLocation(clientIP);
-
     // Validation
     if (!email && !instagram_id) {
       return NextResponse.json(
@@ -98,10 +93,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send Slack notification (non-blocking, async)
-    locationPromise
-      .then((location) => {
-        return sendSlackNotification({
+    // Send Slack notification independently from location lookup
+    // This ensures notification is always sent, even if location lookup fails
+    (async () => {
+      try {
+        // Start location lookup (non-blocking) - only if not localhost
+        let location = null;
+        if (!isLocalhost) {
+          try {
+            // Wait for location with a timeout to avoid blocking notification
+            location = await Promise.race([
+              getIPLocation(clientIP),
+              new Promise<null>(
+                (resolve) => setTimeout(() => resolve(null), 2000) // 2 second timeout
+              ),
+            ]);
+          } catch (locationError) {
+            console.warn(
+              "Location lookup failed, sending notification without location:",
+              locationError
+            );
+          }
+        }
+
+        // Send notification with location data (or empty if unavailable)
+        await sendSlackNotification({
           email: email || null,
           instagramId: instagram_id || null,
           message: message || null,
@@ -111,21 +127,18 @@ export async function POST(request: NextRequest) {
           city: location?.city || "",
           country: location?.country || "",
         });
-      })
-      .catch((err) => {
-        console.error("Error in Slack notification flow:", err);
-        // Send notification even if location lookup fails
-        sendSlackNotification({
-          email: email || null,
-          instagramId: instagram_id || null,
-          message: message || null,
-          previousPage,
-          pageURL,
-          region: "",
-          city: "",
-          country: "",
-        }).catch(console.error);
-      });
+      } catch (notificationError) {
+        // Log error but don't block the API response
+        console.error("Failed to send Slack notification:", {
+          error:
+            notificationError instanceof Error
+              ? notificationError.message
+              : String(notificationError),
+          email: email,
+          instagramId: instagram_id,
+        });
+      }
+    })();
 
     return NextResponse.json({
       success: true,

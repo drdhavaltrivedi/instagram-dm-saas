@@ -25,11 +25,17 @@ export async function sendSlackNotification(data: SlackNotificationData): Promis
     console.warn('Slack configuration missing, skipping notification');
     return;
   }
-  // Build contact info (email or instagram)
-  const contactInfo = data.email 
-    ? `Email: ${data.email}` 
-    : data.instagramId 
-    ? `Instagram ID: @${data.instagramId}` 
+  
+  // Build contact info - show both email and Instagram ID when both are provided
+  const contactParts: string[] = [];
+  if (data.email) {
+    contactParts.push(`Email: ${data.email}`);
+  }
+  if (data.instagramId) {
+    contactParts.push(`Instagram ID: @${data.instagramId}`);
+  }
+  const contactInfo = contactParts.length > 0 
+    ? contactParts.join(' | ') 
     : 'No contact info';
 
   const payload = {
@@ -66,10 +72,29 @@ export async function sendSlackNotification(data: SlackNotificationData): Promis
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Slack API error:', response.status, errorText);
+      console.error('❌ Slack API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        contactInfo,
+        email: data.email,
+        instagramId: data.instagramId,
+      });
+    } else {
+      console.log('✅ Slack notification sent successfully:', {
+        contactInfo,
+        email: data.email,
+        instagramId: data.instagramId,
+      });
     }
   } catch (error) {
-    console.error('Error sending Slack notification:', error);
+    console.error('❌ Error sending Slack notification:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      contactInfo,
+      email: data.email,
+      instagramId: data.instagramId,
+    });
     // Don't throw - Slack failures shouldn't break the signup
   }
 }
