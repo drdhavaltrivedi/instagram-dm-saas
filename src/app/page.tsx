@@ -216,6 +216,107 @@ export default function HomePage() {
     return null; // Will redirect
   }
 
+  const features = [
+    {
+      icon: MessageSquare,
+      title: "Smart Inbox",
+      description:
+        "Manage all your Instagram DMs in one unified inbox with AI-powered organization.",
+      color: "from-blue-500 to-cyan-500",
+    },
+    {
+      icon: Bot,
+      title: "AI-Powered Replies",
+      description:
+        "Automatically respond to messages with intelligent, context-aware AI assistance.",
+      color: "from-purple-500 to-pink-500",
+    },
+    {
+      icon: Send,
+      title: "Bulk Messaging",
+      description:
+        "Send personalized messages to multiple followers at once with campaign management.",
+      color: "from-orange-500 to-red-500",
+    },
+    {
+      icon: BarChart3,
+      title: "Analytics Dashboard",
+      description:
+        "Track engagement, response times, and campaign performance with detailed insights.",
+      color: "from-green-500 to-emerald-500",
+    },
+    {
+      icon: Target,
+      title: "Lead Generation",
+      description:
+        "Identify and nurture high-quality leads from your Instagram interactions.",
+      color: "from-indigo-500 to-blue-500",
+    },
+    {
+      icon: Shield,
+      title: "Secure & Private",
+      description:
+        "Enterprise-grade security to keep your data and conversations safe.",
+      color: "from-teal-500 to-cyan-500",
+    },
+  ];
+
+  const steps = [
+    {
+      number: "01",
+      title: "Connect Your Account",
+      description:
+        "Securely link your Instagram account in seconds with our direct login.",
+      icon: Instagram,
+    },
+    {
+      number: "02",
+      title: "Set Up AI Assistant",
+      description: "Configure your AI preferences and response templates.",
+      icon: Sparkles,
+    },
+    {
+      number: "03",
+      title: "Start Engaging",
+      description: "Let AI handle responses or manage conversations manually.",
+      icon: Rocket,
+    },
+  ];
+
+  const testimonials = [
+    {
+      name: "Sarah Chen",
+      role: "E-commerce Founder",
+      image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&h=96&fit=crop&crop=faces",
+      content:
+        "SocialOra transformed how I manage customer inquiries. Response time dropped by 80% and customer satisfaction skyrocketed!",
+      rating: 5,
+    },
+    {
+      name: "Marcus Johnson",
+      role: "Content Creator",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=faces",
+      content:
+        "The AI assistant is incredibly smart. It understands context and maintains my brand voice perfectly.",
+      rating: 5,
+    },
+    {
+      name: "Emily Rodriguez",
+      role: "Marketing Director",
+      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=96&h=96&fit=crop&crop=faces",
+      content:
+        "Managing multiple Instagram accounts was a nightmare. SocialOra made it effortless with its unified inbox.",
+      rating: 5,
+    },
+  ];
+
+  const stats = [
+    { value: "10K+", label: "Active Users", icon: Users },
+    { value: "2M+", label: "Messages Sent", icon: Send },
+    { value: "95%", label: "Satisfaction Rate", icon: Heart },
+    { value: "24/7", label: "AI Support", icon: Bot },
+  ];
+
   return (
     <div className="min-h-screen bg-background overflow-hidden relative">
       <FloatingBackground />
