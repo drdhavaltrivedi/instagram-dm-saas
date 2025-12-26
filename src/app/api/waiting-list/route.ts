@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
       .insert({
         email: email || null,
         instagram_id: instagram_id || null,
+        message: message?.trim() || null,
       })
       .select()
       .single();
@@ -95,7 +96,14 @@ export async function POST(request: NextRequest) {
 
     // Send Slack notification independently from location lookup
     // This ensures notification is always sent, even if location lookup fails
+    // Also store notification status in Supabase
     (async () => {
+      const waitingListId = data?.id;
+      if (!waitingListId) {
+        console.error("No waiting list ID available to track notification");
+        return;
+      }
+
       try {
         // Start location lookup (non-blocking) - only if not localhost
         let location = null;
@@ -117,7 +125,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Send notification with location data (or empty if unavailable)
-        await sendSlackNotification({
+        const notificationResult = await sendSlackNotification({
           email: email || null,
           instagramId: instagram_id || null,
           message: message || null,
@@ -127,16 +135,65 @@ export async function POST(request: NextRequest) {
           city: location?.city || "",
           country: location?.country || "",
         });
+
+        // Store notification status in Supabase
+        // If successful: set sent=true, store timestamp, clear error
+        // If failed: set sent=false, clear timestamp, store error
+        const updateData = {
+          slack_notification_sent: notificationResult.success,
+          slack_notification_sent_at: notificationResult.success
+            ? new Date().toISOString()
+            : null,
+          slack_notification_error: notificationResult.success
+            ? null // Clear error on success
+            : notificationResult.error || null, // Store error on failure
+        };
+
+        const { error: updateError, data: updateDataResult } = await supabase
+          .from("waiting_list")
+          .update(updateData)
+          .eq("id", waitingListId)
+          .select();
+
+        if (updateError) {
+          console.error(
+            "❌ Failed to update notification status in database:",
+            updateError
+          );
+        }
       } catch (notificationError) {
-        // Log error but don't block the API response
+        // Log error and store failure status
+        const errorMessage =
+          notificationError instanceof Error
+            ? notificationError.message
+            : String(notificationError);
+
         console.error("Failed to send Slack notification:", {
-          error:
-            notificationError instanceof Error
-              ? notificationError.message
-              : String(notificationError),
+          error: errorMessage,
           email: email,
           instagramId: instagram_id,
         });
+
+        // Store failure status in Supabase
+        try {
+          const { error: updateError } = await supabase
+            .from("waiting_list")
+            .update({
+              slack_notification_sent: false,
+              slack_notification_sent_at: null,
+              slack_notification_error: errorMessage,
+            })
+            .eq("id", waitingListId);
+
+          if (updateError) {
+            console.error(
+              "Failed to update notification error status in database:",
+              updateError
+            );
+          }
+        } catch (dbError) {
+          console.error("Error updating notification status:", dbError);
+        }
       }
     })();
 
