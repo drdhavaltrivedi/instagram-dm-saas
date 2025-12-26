@@ -1137,10 +1137,10 @@ export default function InstagramSettingsPage() {
                   <Instagram className="h-4 w-4" />
                   Login with Instagram
                 </Button>
-                <Button variant="secondary" onClick={() => setShowCookieModal(true)}>
+                {/* <Button variant="secondary" onClick={() => setShowCookieModal(true)}>
                   <Cookie className="h-4 w-4" />
                   Use Cookies
-                </Button>
+                </Button> */}
               </div>
               {browserLoginStatus && (
                 <div className="mt-4 p-3 rounded-lg bg-accent/10 border border-accent/20 inline-flex items-center gap-3">
@@ -1194,10 +1194,10 @@ export default function InstagramSettingsPage() {
                   </Button>
                 )}
 
-                <Button variant="ghost" onClick={() => setShowCookieModal(true)}>
+                {/* <Button variant="ghost" onClick={() => setShowCookieModal(true)}>
                   <Cookie className="h-4 w-4" />
                   Manual Connection
-                </Button>
+                </Button> */}
               </div>
             </div>
           </div>
@@ -1529,33 +1529,48 @@ export default function InstagramSettingsPage() {
             </div>
             
             <div className="p-6 space-y-5">
+              {/* Extension Link */}
+              <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-4">
+                <p className="text-xs font-medium text-foreground-muted mb-2">Chrome Extension:</p>
+                <div className="flex items-center gap-2">
+                  <a
+                    href="https://chromewebstore.google.com/detail/socialora-instagram-sessi/lcpiammgpikppaipmnpckpbpdljppbck?authuser=0&hl=en-GB"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-xs text-accent hover:text-purple-400 font-mono bg-background-secondary px-3 py-2 rounded-lg overflow-x-auto hover:bg-background-elevated transition-colors"
+                  >
+                    https://chromewebstore.google.com/detail/socialora-instagram-sessi/...
+                  </a>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText('https://chromewebstore.google.com/detail/socialora-instagram-sessi/lcpiammgpikppaipmnpckpbpdljppbck?authuser=0&hl=en-GB');
+                      setCopied('extension-link');
+                      setTimeout(() => setCopied(null), 2000);
+                    }}
+                    className="p-2 hover:bg-background-secondary rounded-lg transition-colors"
+                  >
+                    {copied === 'extension-link' ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4 text-foreground-muted" />}
+                  </button>
+                </div>
+              </div>
+
               {/* Step 1 - Install Extension */}
               <div className="flex gap-4">
                 <div className="h-8 w-8 rounded-full bg-accent/20 text-accent flex items-center justify-center flex-shrink-0 font-semibold text-sm">
                   1
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-foreground mb-1">Install the Chrome Extension</h3>
+                  <h3 className="font-medium text-foreground mb-2">Install the Chrome Extension</h3>
                   <p className="text-sm text-foreground-muted mb-3">
-                    Load the extension in Chrome Developer Mode:
+                    Click the link above to install the extension from Chrome Web Store. Then click &quot;Add to Chrome&quot;.
                   </p>
-                  <ol className="text-sm text-foreground-muted space-y-1 mb-3 list-decimal ml-4">
-                    <li>Open <code className="px-1 py-0.5 rounded bg-background-elevated text-accent text-xs">chrome://extensions</code></li>
-                    <li>Enable &quot;Developer mode&quot; (top right)</li>
-                    <li>Click &quot;Load unpacked&quot;</li>
-                    <li>Select the <code className="px-1 py-0.5 rounded bg-background-elevated text-accent text-xs">extension</code> folder</li>
-                  </ol>
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText('chrome://extensions');
-                      setCopied('extensions-url');
-                      setTimeout(() => setCopied(null), 2000);
-                    }}
+                    onClick={() => window.open('https://chromewebstore.google.com/detail/socialora-instagram-sessi/lcpiammgpikppaipmnpckpbpdljppbck?authuser=0&hl=en-GB', '_blank')}
                   >
-                    {copied === 'extensions-url' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copied === 'extensions-url' ? 'Copied!' : 'Copy URL'}
+                    <ExternalLink className="h-4 w-4" />
+                    Open Extension Page
                   </Button>
                 </div>
               </div>
@@ -1566,9 +1581,9 @@ export default function InstagramSettingsPage() {
                   2
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-foreground mb-1">Open Instagram</h3>
+                  <h3 className="font-medium text-foreground mb-2">Open Instagram</h3>
                   <p className="text-sm text-foreground-muted mb-3">
-                    Go to Instagram and make sure you&apos;re logged in.
+                    Go to Instagram.com and make sure you&apos;re logged in to the account you want to connect.
                   </p>
                   <Button
                     variant="secondary"
@@ -1583,48 +1598,32 @@ export default function InstagramSettingsPage() {
 
               {/* Step 3 */}
               <div className="flex gap-4">
-                <div className="h-8 w-8 rounded-full bg-success/20 text-success flex items-center justify-center flex-shrink-0 font-semibold text-sm">
+                 <div className="h-8 w-8 rounded-full bg-accent/20 text-accent flex items-center justify-center flex-shrink-0 font-semibold text-sm">
                   3
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-medium text-foreground mb-1">Click Extension → Grab Session</h3>
-                  <p className="text-sm text-foreground-muted">
-                    While on Instagram, click the SocialOra extension icon and hit &quot;Grab Instagram Session&quot;. 
-                    Your account connects automatically! 🎉
+                  <h3 className="font-medium text-foreground mb-2">Grab Instagram Session</h3>
+                  <p className="text-sm text-foreground-muted mb-2">
+                    While on Instagram, click the SocialOra extension icon in your Chrome toolbar and click <strong>&quot;Grab Instagram Session&quot;</strong>.
                   </p>
-                </div>
-              </div>
-
-              {/* Extension folder path */}
-              <div className="bg-background-elevated rounded-xl p-4">
-                <p className="text-xs font-medium text-foreground-muted mb-2">Extension folder location:</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-xs text-accent font-mono bg-background-secondary px-3 py-2 rounded-lg overflow-x-auto">
-                    instagram-dm-saas/extension
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText('extension');
-                      setCopied('folder');
-                      setTimeout(() => setCopied(null), 2000);
-                    }}
-                    className="p-2 hover:bg-background-secondary rounded-lg"
-                  >
-                    {copied === 'folder' ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4 text-foreground-muted" />}
-                  </button>
+                  <div className="bg-success/10 border border-success/20 rounded-lg p-3 mt-3">
+                    <p className="text-xs text-success">
+                      ✅ Your account will connect automatically and appear in your dashboard instantly!
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Alternative */}
-              <div className="border-t border-border pt-4">
+              {/* <div className="border-t border-border pt-4">
                 <button
                   onClick={() => { setShowExtractModal(false); setShowCookieModal(true); }}
-                  className="text-sm text-foreground-muted hover:text-accent flex items-center gap-2"
+                  className="text-sm text-foreground-muted hover:text-accent flex items-center gap-2 transition-colors"
                 >
                   <Cookie className="h-4 w-4" />
                   Or paste cookies manually instead
                 </button>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
@@ -1669,7 +1668,7 @@ export default function InstagramSettingsPage() {
                       </button>
                     </p>
                   </div>
-                </div>
+                </div>  
               )}
 
               {/* Mini cookie inputs for quick use */}
