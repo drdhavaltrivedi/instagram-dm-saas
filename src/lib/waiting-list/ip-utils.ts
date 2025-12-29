@@ -42,6 +42,8 @@ export async function getIPLocation(ip: string): Promise<IPLocation | null> {
     return null;
   }
 
+  console.log('🌐 Fetching location for IP:', ip);
+  
   try {
     const url = `https://ipapi.co/${ip}/json/`;
 
@@ -49,6 +51,7 @@ export async function getIPLocation(ip: string): Promise<IPLocation | null> {
       headers: {
         "User-Agent": "Mozilla/5.0",
       },
+      signal: AbortSignal.timeout(5000), // 5 second timeout for the fetch itself
     });
 
     if (!response.ok) {
@@ -63,6 +66,7 @@ export async function getIPLocation(ip: string): Promise<IPLocation | null> {
     }
 
     const data = await response.json();
+    console.log('📍 IP API raw response:', JSON.stringify(data));
 
     // Check if API returned an error
     if (data.error) {
@@ -85,6 +89,7 @@ export async function getIPLocation(ip: string): Promise<IPLocation | null> {
       isp: data.org || "",
     };
 
+    console.log('✅ Parsed location:', location);
     return location;
   } catch (error) {
     console.error('❌ Error fetching IP location:', error);

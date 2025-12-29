@@ -82,7 +82,7 @@ export default function SupportPage() {
       title: "Video Tutorials",
       description: "Watch step-by-step guides",
       action: "Watch videos",
-      href: "#"
+      href: "https://youtu.be/qfZBnw7G2Tw"
     }
   ];
 
@@ -137,6 +137,8 @@ export default function SupportPage() {
               ) : (
                 <a
                   href={option.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-accent hover:underline text-sm font-medium">
                   {option.action} →
                 </a>
