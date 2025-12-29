@@ -7,6 +7,8 @@ import { prisma } from '@/lib/server/prisma/client';
  * Called by Supabase Edge Function via pg_cron
  * 
  * Authentication: Uses INTERNAL_API_SECRET token
+ * 
+ * Route: /api/internal/process-campaigns
  */
 export async function POST(request: NextRequest) {
   try {
