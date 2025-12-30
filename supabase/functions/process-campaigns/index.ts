@@ -15,10 +15,10 @@ declare const Deno: {
  */
 function getCorsHeaders(): Record<string, string> {
   return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Max-Age': '86400', // 24 hours
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400", // 24 hours
   };
 }
 
@@ -30,10 +30,23 @@ function createJsonResponse(
   status: number = 200,
   additionalHeaders: Record<string, string> = {}
 ): Response {
-  return new Response(JSON.stringify(data), {
+  let jsonBody: string;
+  try {
+    jsonBody = JSON.stringify(data);
+  } catch (error) {
+    // Fallback if JSON.stringify fails
+    jsonBody = JSON.stringify({
+      success: false,
+      error: "Failed to serialize response",
+      originalError: error instanceof Error ? error.message : "Unknown error",
+    });
+    status = 500;
+  }
+
+  return new Response(jsonBody, {
     status,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json; charset=utf-8",
       ...getCorsHeaders(),
       ...additionalHeaders,
     },
@@ -70,7 +83,7 @@ async function fetchWithTimeout(
     return response;
   } catch (error: any) {
     clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
+    if (error.name === "AbortError") {
       throw new Error(`Request timeout after ${timeoutMs}ms`);
     }
     throw error;
@@ -81,12 +94,12 @@ async function fetchWithTimeout(
  * Parse JSON response safely
  */
 async function parseJsonResponse(response: Response): Promise<any> {
-  const contentType = response.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
     const text = await response.text();
     return {
       success: false,
-      error: 'Response is not JSON',
+      error: "Response is not JSON",
       rawResponse: text.substring(0, 500), // Limit raw response length
     };
   }
@@ -96,8 +109,8 @@ async function parseJsonResponse(response: Response): Promise<any> {
   } catch (error) {
     return {
       success: false,
-      error: 'Failed to parse JSON response',
-      parseError: error instanceof Error ? error.message : 'Unknown error',
+      error: "Failed to parse JSON response",
+      parseError: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -105,7 +118,7 @@ async function parseJsonResponse(response: Response): Promise<any> {
 /**
  * Supabase Edge Function to process campaigns
  * Called by pg_cron on a schedule
- * 
+ *
  * This function calls the Next.js API endpoint to process all RUNNING campaigns
  */
 Deno.serve(async (req: Request) => {
@@ -117,14 +130,30 @@ Deno.serve(async (req: Request) => {
     return handleOptionsRequest();
   }
 
-  // Validate HTTP method - only POST is allowed
+  // Handle GET requests for health checks (useful for testing)
+  if (req.method === "GET") {
+    return createJsonResponse(
+      {
+        success: true,
+        message: "Edge Function is running",
+        method: "GET",
+        supportedMethods: ["POST", "GET", "OPTIONS"],
+        requestId,
+        timestamp: new Date().toISOString(),
+      },
+      200
+    );
+  }
+
+  // Validate HTTP method - only POST is allowed for actual processing
   if (req.method !== "POST") {
     console.error(`[${requestId}] Method not allowed: ${req.method}`);
     return createJsonResponse(
       {
         success: false,
-        error: `Method ${req.method} not allowed. Only POST is supported.`,
+        error: `Method ${req.method} not allowed. Supported methods: POST, GET, OPTIONS`,
         requestId,
+        timestamp: new Date().toISOString(),
       },
       405
     );
