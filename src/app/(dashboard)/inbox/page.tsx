@@ -596,7 +596,7 @@ export default function InboxPage() {
               .eq('id', newMessage.id);
 
             setMessages(prev => {
-              const updated = prev.map(m => m.id === newMessage.id ? { ...m, status: 'SENT', igMessageId: result.itemId } : m);
+              const updated = prev.map(m => m.id === newMessage.id ? { ...m, status: 'SENT' as MessageStatus, igMessageId: result.itemId } : m);
               return updated.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
             });
             
@@ -629,7 +629,7 @@ export default function InboxPage() {
             .eq('id', newMessage.id);
 
           setMessages(prev => {
-            const updated = prev.map(m => m.id === newMessage.id ? { ...m, status: 'FAILED' } : m);
+            const updated = prev.map(m => m.id === newMessage.id ? { ...m, status: 'FAILED' as MessageStatus } : m);
             return updated.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
           });
           
