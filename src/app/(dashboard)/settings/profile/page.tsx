@@ -390,7 +390,7 @@ export default function ProfilePage() {
       <div className="p-6 max-w-2xl mx-auto">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
-          <span className="ml-3 text-zinc-400">Loading profile...</span>
+          <span className="ml-3 text-foreground-muted">Loading profile...</span>
         </div>
       </div>
     );
@@ -399,8 +399,8 @@ export default function ProfilePage() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-2">Profile Settings</h1>
-        <p className="text-zinc-400">Update your personal information</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Profile Settings</h1>
+        <p className="text-foreground-muted">Update your personal information</p>
       </div>
 
       {error && (
@@ -419,7 +419,7 @@ export default function ProfilePage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Avatar Section */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+        <div className="rounded-xl border border-border bg-background-elevated p-6">
           <div className="flex items-center gap-6">
             <div className="relative h-20 w-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-2xl font-bold text-white overflow-hidden">
               {avatarUrl ? (
@@ -448,7 +448,7 @@ export default function ProfilePage() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingAvatar || isRemovingAvatar}
-                  className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  className="px-4 py-2 rounded-lg bg-background-secondary text-foreground hover:bg-background-tertiary transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                   {isUploadingAvatar ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -466,11 +466,11 @@ export default function ProfilePage() {
                     type="button"
                     onClick={handleRemoveAvatar}
                     disabled={isUploadingAvatar || isRemovingAvatar}
-                    className={`px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 transition-colors text-sm font-medium flex items-center gap-2
+                    className={`px-4 py-2 rounded-lg bg-background-secondary text-foreground transition-colors text-sm font-medium flex items-center gap-2
                       ${
                         isRemovingAvatar
                           ? "opacity-100 cursor-wait"
-                          : "hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          : "hover:bg-background-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
                       }
                     `}>
                     {isRemovingAvatar ? (
@@ -487,7 +487,7 @@ export default function ProfilePage() {
                   </button>
                 )}
               </div>
-              <p className="mt-2 text-xs text-zinc-500">
+              <p className="mt-2 text-xs text-foreground-muted">
                 JPG, PNG or GIF. Max size 5MB
               </p>
             </div>
@@ -495,18 +495,18 @@ export default function ProfilePage() {
         </div>
 
         {/* Personal Info */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-white mb-4">
+        <div className="rounded-xl border border-border bg-background-elevated p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
             Personal Information
           </h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">
+              <label className="block text-sm font-medium text-foreground-muted mb-2">
                 First Name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-subtle pointer-events-none" />
                 <input
                   type="text"
                   value={formData.firstName}
@@ -515,13 +515,13 @@ export default function ProfilePage() {
                     setFormData({ ...formData, firstName: value });
                   }}
                   maxLength={50}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-background-tertiary border border-border text-foreground placeholder-foreground-subtle focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-colors"
                   placeholder="First name"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">
+              <label className="block text-sm font-medium text-foreground-muted mb-2">
                 Last Name
               </label>
               <input
@@ -532,59 +532,59 @@ export default function ProfilePage() {
                   setFormData({ ...formData, lastName: value });
                 }}
                 maxLength={50}
-                className="w-full px-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-colors"
+                className="w-full px-4 py-2.5 rounded-lg bg-background-tertiary border border-border text-foreground placeholder-foreground-subtle focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-colors"
                 placeholder="Last name"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">
+            <label className="block text-sm font-medium text-foreground-muted mb-2">
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-subtle pointer-events-none" />
               <input
                 type="email"
                 value={formData.email}
                 disabled
                 placeholder="your.email@example.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-400 cursor-not-allowed"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-background-tertiary/50 border border-border text-foreground-muted cursor-not-allowed"
               />
             </div>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-foreground-muted">
               Email cannot be changed
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">
+            <label className="block text-sm font-medium text-foreground-muted mb-2">
               Phone
             </label>
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-subtle pointer-events-none" />
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={handlePhoneChange}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-background-tertiary border border-border text-foreground placeholder-foreground-subtle focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-colors"
                 placeholder="+1 (555) 123-4567"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">
+            <label className="block text-sm font-medium text-foreground-muted mb-2">
               Timezone
             </label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-subtle" />
               <select
                 value={formData.timezone}
                 onChange={(e) =>
                   setFormData({ ...formData, timezone: e.target.value })
                 }
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-colors appearance-none">
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-background-tertiary border border-border text-foreground focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-colors appearance-none">
                 <option value="America/New_York">Eastern Time (ET)</option>
                 <option value="America/Chicago">Central Time (CT)</option>
                 <option value="America/Denver">Mountain Time (MT)</option>
@@ -597,7 +597,7 @@ export default function ProfilePage() {
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-zinc-400">
+              <label className="block text-sm font-medium text-foreground-muted">
                 Bio
               </label>
               <span
@@ -606,7 +606,7 @@ export default function ProfilePage() {
                     ? "text-red-400"
                     : formData.bio.length > 0 && formData.bio.length < 10
                     ? "text-yellow-400"
-                    : "text-zinc-500"
+                    : "text-foreground-muted"
                 }`}>
                 {formData.bio.length} / 500
                 {formData.bio.length > 0 &&
@@ -623,7 +623,7 @@ export default function ProfilePage() {
               minLength={10}
               maxLength={500}
               rows={3}
-              className="w-full px-4 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-colors resize-none"
+              className="w-full px-4 py-2.5 rounded-lg bg-background-tertiary border border-border text-foreground placeholder-foreground-subtle focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none transition-colors resize-none"
               placeholder="Tell us about yourself... (minimum 10 characters)"
             />
             {formData.bio.length > 0 && formData.bio.length < 10 && (
