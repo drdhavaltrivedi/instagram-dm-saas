@@ -92,7 +92,7 @@ export default function SettingsPage() {
               className="group relative flex items-start gap-4 rounded-xl border border-border bg-background-elevated p-6 transition-all hover:border-border-hover hover:bg-background-secondary"
             >
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-400 group-hover:from-pink-500/30 group-hover:to-purple-500/30 transition-all">
-                <Icon className="h-7 w-7" strokeWidth={1.5} />
+                <Icon className="h-7 w-7" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
