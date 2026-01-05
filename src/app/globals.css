@@ -484,6 +484,13 @@ input[type="range"].slider-input::-moz-range-track {
   border-radius: 6px;
 }
 
+/* For single range slider - inactive track after thumb */
+.horizontal-slider .slider-track.slider-track-1 {
+  background: var(--background-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 /* For dual range slider - track-0 should be background (before first thumb) */
 .dual-range-slider .slider-track.slider-track-0 {
   background: var(--background-elevated);
@@ -512,7 +519,7 @@ input[type="range"].slider-input::-moz-range-track {
 }
 
 /* For dual range slider - active track between thumbs (this is the selected range) */
-.horizontal-slider .slider-track.slider-track-1 {
+.dual-range-slider .slider-track.slider-track-1 {
   background: var(--accent-color);
   border-radius: 6px;
 }

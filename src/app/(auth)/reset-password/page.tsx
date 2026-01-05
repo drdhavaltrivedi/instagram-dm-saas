@@ -193,7 +193,7 @@ export default function ResetPasswordPage() {
               Create a new password
             </h1>
             <p className="text-lg text-foreground-muted mb-8">
-              Choose a strong password to secure your account.
+              Choose a strong password to secure your account. Make sure it's at least 8 characters long.
             </p>
           </div>
         </div>
@@ -203,7 +203,7 @@ export default function ResetPasswordPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
+          <div className="lg:hidden flex items-center mb-8 justify-center">
             <div className="flex items-center">
               <div className="h-14 w-14 flex items-center justify-center overflow-hidden">
                 <Image 
@@ -221,8 +221,8 @@ export default function ResetPasswordPage() {
           </div>
           
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Reset password</h2>
-            <p className="text-foreground-muted">Enter your new password below</p>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Reset your password</h2>
+            <p className="text-foreground-muted">Create a new password for your account</p>
           </div>
 
           {/* Error Message */}
