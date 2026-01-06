@@ -66,7 +66,7 @@ export function extractImageUrls(html: string): string[] {
     }
 
     // Remove duplicates and return
-    const uniqueUrls = [...new Set(imageUrls)];
+    const uniqueUrls = Array.from(new Set(imageUrls));
     console.log('[Image Extract] Found', uniqueUrls.length, 'unique images');
     return uniqueUrls;
   } catch (error) {
