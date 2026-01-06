@@ -2,6 +2,7 @@ import { IgApiClient } from 'instagram-private-api';
 import { prisma } from '../prisma/client';
 import type { InstagramCookies, InstagramUserInfo } from './types';
 import crypto from 'crypto';
+import { getRandomDelay } from '@/lib/utils/rate-limit';
 
 // Simple client cache
 const clientCache = new Map<string, { client: IgApiClient; expiresAt: number }>();
@@ -485,7 +486,9 @@ export class InstagramCookieService {
             });
           }
           
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // Use random delay to avoid rate limiting
+          const delay = getRandomDelay();
+          await new Promise(resolve => setTimeout(resolve, delay));
         } catch (e) {
           console.warn(`Could not fetch profile for ${user.username}:`, e);
         }
@@ -513,7 +516,9 @@ export class InstagramCookieService {
         if (profile) {
           profiles.push(profile);
         }
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Use random delay to avoid rate limiting
+        const delay = getRandomDelay();
+        await new Promise(resolve => setTimeout(resolve, delay));
       } catch (error) {
         console.warn(`Failed to fetch profile for user ${userId}`);
       }
@@ -644,7 +649,9 @@ export class InstagramCookieService {
         
         if (!followersFeed.isMoreAvailable() || followers.length >= limit) break;
         page = await followersFeed.items();
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Use random delay for pagination to avoid rate limiting
+        const delay = getRandomDelay();
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
       
       return followers;
@@ -679,7 +686,9 @@ export class InstagramCookieService {
         
         if (!followingFeed.isMoreAvailable() || following.length >= limit) break;
         page = await followingFeed.items();
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Use random delay for pagination to avoid rate limiting
+        const delay = getRandomDelay();
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
       
       return following;
@@ -736,7 +745,9 @@ export class InstagramCookieService {
         
         try {
           page = await hashtagFeed.items();
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Use random delay for pagination to avoid rate limiting
+          const delay = getRandomDelay();
+          await new Promise(resolve => setTimeout(resolve, delay));
         } catch (e) {
           console.warn('Error fetching more hashtag items:', e);
           break;

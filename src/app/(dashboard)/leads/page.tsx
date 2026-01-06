@@ -35,6 +35,8 @@ import { createClient } from '@/lib/supabase/client';
 import { usePostHog } from '@/hooks/use-posthog';
 import { toast } from 'sonner';
 import { MobileLeadCard } from "@/components/leads/mobile-lead-card";
+import { LeadProfileModal } from '@/components/leads/lead-profile-modal';
+import { getRandomDelay, formatDelayTime } from '@/lib/utils/rate-limit';
 
 // Use relative URLs since we're on the same domain (Next.js API routes)
 // All API calls use relative URLs since backend and frontend are on the same domain
@@ -226,6 +228,18 @@ export default function LeadsPage() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  
+  // Batch loading states
+  const [displayedSearchResults, setDisplayedSearchResults] = useState<any[]>([]);
+  const [isLoadingBatch, setIsLoadingBatch] = useState(false);
+  const [currentBatchIndex, setCurrentBatchIndex] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
+  const [batchSize] = useState(10); // Load 10 initially
+  const [moreBatchSize] = useState(5); // Load 5 more on button click
+  
+  // Profile modal state
+  const [showLeadProfileModal, setShowLeadProfileModal] = useState(false);
+  const [profileModalUsername, setProfileModalUsername] = useState('');
 
   // Fetch accounts
   const fetchAccounts = useCallback(async () => {
@@ -440,7 +454,24 @@ export default function LeadsPage() {
 
       if (result.success) {
         const results = result.users || result.followers || result.following || [];
-        setSearchResults(results);
+        
+        if (!loadMore) {
+          // Reset batch loading state on new search
+          setSearchResults(results);
+          setDisplayedSearchResults([]);
+          setCurrentBatchIndex(0);
+          
+          // Automatically trigger loading first batch if we have results
+          if (results.length > 0) {
+            setTimeout(() => {
+              loadNextBatch(batchSize);
+            }, 500);
+          }
+        } else {
+          // For load more, just add to search results
+          setSearchResults(results);
+        }
+        
         setSearchLimit(currentLimit);
         setSearchError(''); // Clear any previous errors
         
@@ -550,7 +581,101 @@ export default function LeadsPage() {
     }
   };
 
-  // Add leads with profile fetching and keyword filtering
+  // Load batch of search results with random delays
+  const loadNextBatch = async (count: number) => {
+    if (!selectedAccount || searchResults.length === 0) return;
+
+    const cookies = getCookies();
+    if (!cookies) {
+      toast.error('Session expired', {
+        description: 'Please reconnect your Instagram account.',
+      });
+      return;
+    }
+
+    // Get keywords from preset or custom input
+    let keywords: string[] = [];
+    if (selectedPreset) {
+      const preset = KEYWORD_PRESETS.find(p => p.name === selectedPreset);
+      keywords = preset?.keywords || [];
+    }
+    const customKeywords = bioKeywords.split(',').map(k => k.trim()).filter(k => k);
+    keywords = [...keywords, ...customKeywords];
+
+    setIsLoadingBatch(true);
+    const startIndex = currentBatchIndex;
+    const endIndex = Math.min(startIndex + count, searchResults.length);
+    const batch = searchResults.slice(startIndex, endIndex);
+    
+    setLoadingProgress({ current: 0, total: batch.length });
+
+    const newDisplayedResults: any[] = [];
+
+    for (let i = 0; i < batch.length; i++) {
+      const userProfile = batch[i];
+      
+      try {
+        setLoadingProgress({ current: i + 1, total: batch.length });
+        
+        // Fetch full profile with bio
+        const profileRes = await fetch(`/api/instagram/cookie/user/${userProfile.username}/profile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cookies }),
+        });
+        const profileData = await profileRes.json();
+        
+        const profile = profileData.success ? profileData.profile : userProfile;
+        const bio = profile.bio || '';
+        
+        // Use smart keyword matching
+        const matchedKeywords = matchKeywordsInBio(bio, keywords);
+        
+        // Add to displayed results with full profile data
+        newDisplayedResults.push({
+          ...profile,
+          username: profile.username || userProfile.username,
+          fullName: profile.fullName || userProfile.fullName,
+          bio: profile.bio,
+          matchedKeywords,
+          source: userProfile.source,
+          matchedKeyword: userProfile.matchedKeyword,
+        });
+
+        // Update displayed results immediately (incremental display)
+        setDisplayedSearchResults(prev => [...prev, {
+          ...profile,
+          username: profile.username || userProfile.username,
+          fullName: profile.fullName || userProfile.fullName,
+          bio: profile.bio,
+          matchedKeywords,
+          source: userProfile.source,
+          matchedKeyword: userProfile.matchedKeyword,
+        }]);
+
+        // Random delay between 5-15 seconds (except for the last item)
+        if (i < batch.length - 1) {
+          const delay = getRandomDelay();
+          console.log(`Waiting ${formatDelayTime(delay)} before next profile...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      } catch (error) {
+        console.error(`Failed to load profile ${userProfile.username}:`, error);
+      }
+    }
+
+    setCurrentBatchIndex(endIndex);
+    setIsLoadingBatch(false);
+    setLoadingProgress({ current: 0, total: 0 });
+
+    if (endIndex >= searchResults.length) {
+      toast.success('All profiles loaded!', {
+        description: `Loaded ${displayedSearchResults.length + newDisplayedResults.length} profiles`,
+      });
+    }
+  };
+
+  // Add leads from displayed results
   const handleAddLeads = async (users: any[]) => {
     if (!selectedAccount) return;
 
@@ -598,40 +723,15 @@ export default function LeadsPage() {
     const workspaceId = user.workspace_id;
 
     let addedCount = 0;
-    let matchedCount = 0;
-    let scannedCount = 0;
 
     // Show progress
-    toast.info('Scanning users', {
-      description: `Starting to scan ${users.length} users for matching bios...`,
+    toast.info('Adding leads', {
+      description: `Adding ${users.length} leads to database...`,
       duration: 3000,
     });
 
-    for (const userProfile of users) {
+    for (const profile of users) {
       try {
-        scannedCount++;
-        
-        // Fetch full profile with bio
-        const profileRes = await fetch(`/api/instagram/cookie/user/${userProfile.username}/profile`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cookies }),
-        });
-        const profileData = await profileRes.json();
-        
-        const profile = profileData.success ? profileData.profile : userProfile;
-        const bio = profile.bio || '';
-        
-        // Use smart keyword matching
-        const matchedKeywords = matchKeywordsInBio(bio, keywords);
-        
-        // Skip if filtering and no matches (only if keywords are specified)
-        if (keywords.length > 0 && matchedKeywords.length === 0) {
-          continue;
-        }
-
-        matchedCount++;
-
         // Insert into database (RLS will verify workspace_id)
         await supabase.from('leads').upsert({
           workspace_id: workspaceId,
@@ -650,26 +750,24 @@ export default function LeadsPage() {
           status: 'new',
           source: searchType,
           source_query: searchQuery,
-          matched_keywords: matchedKeywords,
+          matched_keywords: profile.matchedKeywords || [],
         }, {
           onConflict: 'ig_user_id,workspace_id'
         });
 
         addedCount++;
-
-        // Small delay to avoid rate limits
-        await new Promise(r => setTimeout(r, 500));
       } catch (error) {
-        console.error(`Failed to add lead ${userProfile.username}:`, error);
+        console.error(`Failed to add lead ${profile.username}:`, error);
       }
     }
 
-    const keywordInfo = selectedPreset ? selectedPreset : (keywords.length > 0 ? `${keywords.length} keywords` : 'all users');
-    toast.success('Scan complete!', {
-      description: `Scanned: ${scannedCount} profiles | Matched: ${matchedCount} with "${keywordInfo}" | Added: ${addedCount} new leads`,
-      duration: 6000,
+    toast.success('Leads added!', {
+      description: `Successfully added ${addedCount} leads to your database`,
+      duration: 5000,
     });
+    setDisplayedSearchResults([]);
     setSearchResults([]);
+    setCurrentBatchIndex(0);
     fetchLeads();
   };
 
@@ -1472,7 +1570,177 @@ export default function LeadsPage() {
           )}
 
           {/* Search Results */}
-          {searchResults.length > 0 && (
+          {(searchResults.length > 0 || displayedSearchResults.length > 0) && (
+            <div className="border-t border-border pt-4">
+              {/* Search info header */}
+              {searchResults.length > 0 && displayedSearchResults.length === 0 && !isLoadingBatch && (
+                <div className="mb-4 p-4 rounded-lg bg-accent/10 border border-accent/20">
+                  <p className="text-sm text-accent font-medium">
+                    ✨ Found {searchResults.length} profiles. Loading first {Math.min(batchSize, searchResults.length)}...
+                  </p>
+                </div>
+              )}
+              
+              {/* Loading indicator */}
+              {isLoadingBatch && (
+                <div className="mb-4 p-4 rounded-lg bg-accent/10 border border-accent/20">
+                  <div className="flex items-center gap-3">
+                    <RefreshCw className="h-5 w-5 text-accent animate-spin flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm text-accent font-medium">
+                        Loading profile {loadingProgress.current} of {loadingProgress.total}...
+                      </p>
+                      <div className="mt-2 bg-background-muted rounded-full h-2 overflow-hidden">
+                        <div 
+                          className="bg-accent h-full transition-all duration-300"
+                          style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Displayed results */}
+              {displayedSearchResults.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="font-medium text-foreground">
+                        Loaded {displayedSearchResults.length} of {searchResults.length} profiles
+                      </h4>
+                      <div className="flex gap-3 mt-1">
+                        {searchType === "hashtag" && (
+                          <span className="text-xs text-foreground-muted flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {
+                              displayedSearchResults.filter(
+                                (u) =>
+                                  u.source === "bio_match" || u.source === "hashtag"
+                              ).length
+                            }{" "}
+                            from bio search
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={() => handleAddLeads(displayedSearchResults)} disabled={isLoadingBatch}>
+                      <UserPlus className="h-4 w-4" />
+                      Add All {displayedSearchResults.length} as Leads
+                    </Button>
+                  </div>
+
+                  {/* Results Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto">
+                    {displayedSearchResults.map((user, i) => (
+                      <div
+                        key={`${user.pk}-${i}`}
+                        className={cn(
+                          "p-3 rounded-lg border transition-colors",
+                          user.source === "bio_match"
+                            ? "bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10"
+                            : "bg-background-elevated border-border hover:bg-background-elevated/80"
+                        )}>
+                        <div className="flex items-start gap-3">
+                          <Avatar
+                            src={user.profilePicUrl}
+                            name={user.username}
+                            size="md"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                @{user.username}
+                              </p>
+                              {user.isVerified && (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-accent flex-shrink-0" />
+                              )}
+                              {user.isPrivate && (
+                                <span className="text-xs text-amber-400">🔒</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-foreground-muted truncate">
+                              {user.fullName}
+                            </p>
+
+                            {/* Follower count */}
+                            {user.followerCount && (
+                              <p className="text-xs text-foreground-subtle mt-1">
+                                {user.followerCount.toLocaleString()} followers
+                              </p>
+                            )}
+
+                            {/* Bio preview */}
+                            {user.bio && (
+                              <p className="text-xs text-foreground-muted mt-1 line-clamp-2">
+                                {user.bio}
+                              </p>
+                            )}
+
+                            {/* Source & Matched keyword badges */}
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {user.source && (
+                                <span
+                                  className={cn(
+                                    "px-1.5 py-0.5 rounded text-[10px] font-medium",
+                                    user.source === "bio_match"
+                                      ? "bg-emerald-500/20 text-emerald-400"
+                                      : "bg-accent/20 text-accent"
+                                  )}>
+                                  {user.source === "bio_match"
+                                    ? "📝 Bio match"
+                                    : "#️⃣ Hashtag"}
+                                </span>
+                              )}
+                              {user.matchedKeyword && (
+                                <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[10px] font-medium">
+                                  ✓ {user.matchedKeyword}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* View Profile Button */}
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="mt-2 w-full text-xs"
+                              onClick={() => {
+                                setProfileModalUsername(user.username);
+                                setShowLeadProfileModal(true);
+                              }}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              View Profile
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Load More Button */}
+                  {currentBatchIndex < searchResults.length && !isLoadingBatch && (
+                    <div className="mt-4 flex flex-col items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => loadNextBatch(moreBatchSize)}
+                        disabled={isLoadingBatch}
+                      >
+                        Load {Math.min(moreBatchSize, searchResults.length - currentBatchIndex)} More 
+                        ({searchResults.length - currentBatchIndex} remaining)
+                      </Button>
+                      <p className="text-xs text-foreground-muted">
+                        Each profile loads with 5-15 second delay for safety
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Old Search Results (shown only when not using batch loading) */}
+          {searchResults.length > 0 && displayedSearchResults.length === 0 && !isLoadingBatch && false && (
             <div className="border-t border-border pt-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -2098,8 +2366,20 @@ export default function LeadsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleViewProfile(lead)}>
+                              onClick={() => handleViewProfile(lead)}
+                              title="View Lead Details">
                               <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setProfileModalUsername(lead.igUsername);
+                                setShowLeadProfileModal(true);
+                              }}
+                              title="View Fresh Profile (Scraped from Instagram)"
+                              className="text-accent hover:text-accent/80">
+                              <RefreshCw className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -2109,7 +2389,8 @@ export default function LeadsPage() {
                                   `https://instagram.com/${lead.igUsername}`,
                                   "_blank"
                                 )
-                              }>
+                              }
+                              title="Open on Instagram">
                               <Instagram className="h-4 w-4" />
                             </Button>
                           </div>
@@ -2738,6 +3019,25 @@ export default function LeadsPage() {
           </div>
         </div>
       )}
+
+      {/* Lead Profile Modal (No-Auth Scraper) */}
+      <LeadProfileModal
+        username={profileModalUsername}
+        isOpen={showLeadProfileModal}
+        onClose={() => {
+          setShowLeadProfileModal(false);
+          setProfileModalUsername('');
+        }}
+        onAddToLeads={async (username) => {
+          // Add single lead from modal
+          const user = displayedSearchResults.find(u => u.username === username);
+          if (user) {
+            await handleAddLeads([user]);
+          }
+          setShowLeadProfileModal(false);
+        }}
+        isAlreadyLead={leads.some(l => l.igUsername === profileModalUsername)}
+      />
     </div>
   );
 }
