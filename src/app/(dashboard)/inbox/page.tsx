@@ -226,7 +226,7 @@ export default function InboxPage() {
         return;
       }
 
-  // Get conversation details to find thread ID (use ref to avoid changing
+  // Get conversation details to find thread ID (use ref to avoid changing)
   // fetchMessages identity when the conversations state updates)
   const conversation = conversationsRef.current.find(c => c.id === conversationId);
       if (!conversation) {
