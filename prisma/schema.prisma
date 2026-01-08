@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,61 +5,513 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL") // Used for migrations (bypasses connection pooler)
+  directUrl = env("DIRECT_URL")
 }
 
-// ============================================================================
-// Core Multi-Tenant Models
-// ============================================================================
-
 model Workspace {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  users                   User[]
-  instagramAccounts       InstagramAccount[]
-  contacts                Contact[]
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                    String
+  slug                    String                   @unique
+  createdAt               DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  automations             Automation[]
   campaigns               Campaign[]
+  contacts                Contact[]
+  instagramAccounts       InstagramAccount[]
+  jobQueue                JobQueue[]
+  leadLists               LeadList[]
+  leads                   Lead[]
   notificationPreferences NotificationPreference[]
   notifications           Notification[]
-  automations            Automation[]
-  leads                   Lead[]
-  leadLists               LeadList[]
+  users                   User[]
 
   @@map("workspaces")
 }
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  supabaseAuthId String?   @unique @map("supabase_auth_id") // Links to Supabase auth.users.id
-  passwordHash    String?   @map("password_hash")
-  name            String?
-  firstName       String?   @map("first_name")
-  lastName        String?   @map("last_name")
-  phone           String?
-  timezone        String?   @default("America/New_York")
-  bio             String?
-  avatarUrl       String?   @map("avatar_url")
-  emailVerified   DateTime? @map("email_verified")
-  magicToken      String?   @map("magic_token")
-  magicTokenExp   DateTime? @map("magic_token_exp")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-
-  workspaceId String    @map("workspace_id")
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                   String                   @unique
+  passwordHash            String?                  @map("password_hash")
+  name                    String?
+  emailVerified           DateTime?                @map("email_verified") @db.Timestamptz(6)
+  magicToken              String?                  @map("magic_token")
+  magicTokenExp           DateTime?                @map("magic_token_exp") @db.Timestamptz(6)
+  workspaceId             String                   @map("workspace_id") @db.Uuid
   role                    UserRole                 @default(MEMBER)
+  createdAt               DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  supabaseAuthId          String?                  @unique @map("supabase_auth_id") @db.Uuid
+  firstName               String?                  @map("first_name")
+  lastName                String?                  @map("last_name")
+  phone                   String?
+  timezone                String?                  @default("America/New_York")
+  bio                     String?
+  avatarUrl               String?                  @map("avatar_url")
   notificationPreferences NotificationPreference[]
   notifications           Notification[]
+  workspace               Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([supabaseAuthId])
+  @@index([workspaceId], map: "idx_users_workspace_id")
+  @@map("users")
+}
+
+model InstagramAccount {
+  id                   String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  igUserId             String                     @map("ig_user_id")
+  igUsername           String                     @map("ig_username")
+  fbPageId             String?                    @map("fb_page_id")
+  accessToken          String                     @map("access_token")
+  accessTokenExpiresAt DateTime?                  @map("access_token_expires_at") @db.Timestamptz(6)
+  permissions          String[]                   @default([])
+  profilePictureUrl    String?                    @map("profile_picture_url")
+  isActive             Boolean                    @default(true) @map("is_active")
+  webhookSubscribed    Boolean                    @default(false) @map("webhook_subscribed")
+  dailyDmLimit         Int                        @default(100) @map("daily_dm_limit")
+  dmsSentToday         Int                        @default(0) @map("dms_sent_today")
+  dmLimitResetAt       DateTime?                  @map("dm_limit_reset_at") @db.Timestamptz(6)
+  workspaceId          String                     @map("workspace_id") @db.Uuid
+  createdAt            DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  cookies              Json?
+  dailyMessageCounts   AccountDailyMessageCount[]
+  automations          Automation[]
+  campaignAccounts     CampaignAccount[]
+  assignedRecipients   CampaignRecipient[]
+  campaigns            Campaign[]
+  conversations        Conversation[]
+  workspace            Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  leads                Lead[]
+
+  @@unique([igUserId, workspaceId])
+  @@index([workspaceId], map: "idx_instagram_accounts_workspace_id")
+  @@map("instagram_accounts")
+}
+
+model Contact {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  igUserId           String              @map("ig_user_id")
+  igUsername         String?             @map("ig_username")
+  name               String?
+  profilePictureUrl  String?             @map("profile_picture_url")
+  followerCount      Int?                @map("follower_count")
+  isVerified         Boolean             @default(false) @map("is_verified")
+  tags               String[]            @default([])
+  notes              String?
+  workspaceId        String              @map("workspace_id") @db.Uuid
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  bio                String?
+  campaignRecipients CampaignRecipient[]
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversations      Conversation[]
+
+  @@unique([igUserId, workspaceId])
+  @@index([igUsername], map: "idx_contacts_ig_username")
+  @@index([workspaceId], map: "idx_contacts_workspace_id")
+  @@map("contacts")
+}
+
+model Conversation {
+  id                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  igThreadId            String?            @map("ig_thread_id")
+  status                ConversationStatus @default(OPEN)
+  lastMessageAt         DateTime?          @map("last_message_at") @db.Timestamptz(6)
+  unreadCount           Int                @default(0) @map("unread_count")
+  isAutomationPaused    Boolean            @default(false) @map("is_automation_paused")
+  instagramAccountId    String             @map("instagram_account_id") @db.Uuid
+  contactId             String             @map("contact_id") @db.Uuid
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  first_message_sent_at DateTime?          @db.Timestamptz(6)
+  is_request_pending    Boolean?           @default(false)
+  contact               Contact            @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  instagramAccount      InstagramAccount   @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages              Message[]
+
+  @@unique([instagramAccountId, contactId])
+  @@index([contactId], map: "idx_conversations_contact_id")
+  @@index([instagramAccountId], map: "idx_conversations_instagram_account_id")
+  @@index([lastMessageAt], map: "idx_conversations_last_message_at")
+  @@index([status], map: "idx_conversations_status")
+  @@map("conversations")
+}
+
+model Message {
+  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  igMessageId         String?          @unique @map("ig_message_id")
+  content             String
+  messageType         MessageType      @default(TEXT) @map("message_type")
+  direction           MessageDirection
+  status              MessageStatus    @default(PENDING)
+  sentAt              DateTime?        @map("sent_at") @db.Timestamptz(6)
+  deliveredAt         DateTime?        @map("delivered_at") @db.Timestamptz(6)
+  readAt              DateTime?        @map("read_at") @db.Timestamptz(6)
+  errorMessage        String?          @map("error_message")
+  metadata            Json?
+  aiGenerated         Boolean          @default(false) @map("ai_generated")
+  conversationId      String           @map("conversation_id") @db.Uuid
+  campaignStepId      String?          @map("campaign_step_id") @db.Uuid
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  is_first_message    Boolean?         @default(false)
+  is_pending_approval Boolean?         @default(false)
+  is_blocked          Boolean?         @default(false)
+  approval_status     String?          @default("approved") @db.VarChar(50)
+  campaignStep        CampaignStep?    @relation(fields: [campaignStepId], references: [id], onUpdate: NoAction)
+  conversation        Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([conversationId], map: "idx_messages_conversation_id")
+  @@index([createdAt], map: "idx_messages_created_at")
+  @@index([status], map: "idx_messages_status")
+  @@map("messages")
+}
+
+model Campaign {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String
+  description        String?
+  status             CampaignStatus      @default(DRAFT)
+  targetAudience     Json?               @map("target_audience")
+  scheduledAt        DateTime?           @map("scheduled_at") @db.Timestamptz(6)
+  startedAt          DateTime?           @map("started_at") @db.Timestamptz(6)
+  completedAt        DateTime?           @map("completed_at") @db.Timestamptz(6)
+  totalRecipients    Int                 @default(0) @map("total_recipients")
+  sentCount          Int                 @default(0) @map("sent_count")
+  failedCount        Int                 @default(0) @map("failed_count")
+  replyCount         Int                 @default(0) @map("reply_count")
+  workspaceId        String              @map("workspace_id") @db.Uuid
+  instagramAccountId String?             @map("instagram_account_id") @db.Uuid
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sendStartTime      DateTime?           @map("send_start_time") @db.Time(6)
+  sendEndTime        DateTime?           @map("send_end_time") @db.Time(6)
+  timezone           String?             @default("America/New_York") @db.VarChar(50)
+  messagesPerDay     Int?                @default(10) @map("messages_per_day")
+  campaignAccounts   CampaignAccount[]
+  recipients         CampaignRecipient[]
+  steps              CampaignStep[]
+  instagramAccount   InstagramAccount?   @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  jobQueue           JobQueue[]
+
+  @@index([instagramAccountId], map: "idx_campaigns_instagram_account_id")
+  @@index([status], map: "idx_campaigns_status")
+  @@index([workspaceId], map: "idx_campaigns_workspace_id")
+  @@map("campaigns")
+}
+
+model CampaignStep {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stepOrder       Int           @map("step_order")
+  name            String?
+  messageTemplate String        @map("message_template")
+  delayMinutes    Int           @default(0) @map("delay_minutes")
+  condition       Json?
+  campaignId      String        @map("campaign_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  delay_hours     Int?          @default(0)
+  delayDays       Int?          @default(0) @map("delay_days")
+  campaign        Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages        Message[]
+  variants        StepVariant[]
+
+  @@index([campaignId], map: "idx_campaign_steps_campaign_id")
+  @@map("campaign_steps")
+}
+
+model StepVariant {
+  id              String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  stepId          String       @map("step_id") @db.Uuid
+  messageTemplate String       @map("message_template")
+  createdAt       DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  step            CampaignStep @relation(fields: [stepId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([stepId], map: "idx_step_variants_step_id")
+  @@map("step_variants")
+}
+
+model CampaignRecipient {
+  id                String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status            CampaignRecipientStatus @default(PENDING)
+  currentStepOrder  Int                     @default(0) @map("current_step_order")
+  lastProcessedAt   DateTime?               @map("last_processed_at") @db.Timestamptz(6)
+  nextProcessAt     DateTime?               @map("next_process_at") @db.Timestamptz(6)
+  errorMessage      String?                 @map("error_message")
+  campaignId        String                  @map("campaign_id") @db.Uuid
+  contactId         String                  @map("contact_id") @db.Uuid
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  assignedAccountId String?                 @map("assigned_account_id") @db.Uuid
+  nextActionAt      DateTime?               @map("next_action_at") @db.Timestamptz(6)
+  assignedAccount   InstagramAccount?       @relation(fields: [assignedAccountId], references: [id], onUpdate: NoAction)
+  campaign          Campaign                @relation(fields: [campaignId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contact           Contact                 @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  jobQueue          JobQueue[]
+
+  @@unique([campaignId, contactId])
+  @@index([assignedAccountId], map: "idx_campaign_recipients_assigned_account")
+  @@index([campaignId], map: "idx_campaign_recipients_campaign_id")
+  @@index([contactId], map: "idx_campaign_recipients_contact_id")
+  @@index([nextActionAt], map: "idx_campaign_recipients_next_action_at")
+  @@index([nextProcessAt], map: "idx_campaign_recipients_next_process_at")
+  @@index([status], map: "idx_campaign_recipients_status")
+  @@map("campaign_recipients")
+}
+
+model CampaignAccount {
+  campaignId         String           @map("campaign_id") @db.Uuid
+  instagramAccountId String           @map("instagram_account_id") @db.Uuid
+  createdAt          DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
+  campaign           Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  instagramAccount   InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([campaignId, instagramAccountId])
+  @@index([instagramAccountId], map: "idx_campaign_accounts_account")
+  @@index([campaignId], map: "idx_campaign_accounts_campaign")
+  @@map("campaign_accounts")
+}
+
+model AccountDailyMessageCount {
+  id                 String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  instagramAccountId String           @map("instagram_account_id") @db.Uuid
+  date               DateTime         @db.Date
+  messageCount       Int?             @default(0) @map("message_count")
+  createdAt          DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  instagramAccount   InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([instagramAccountId, date], name: "instagramAccountId_date")
+  @@index([instagramAccountId, date], map: "idx_account_daily_count")
+  @@index([date], map: "idx_account_daily_count_date")
+  @@map("account_daily_message_count")
+}
+
+model NotificationPreference {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        String
+  email       Boolean   @default(true)
+  push        Boolean   @default(false)
+  inApp       Boolean   @default(true) @map("in_app")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  workspaceId String    @map("workspace_id") @db.Uuid
+  userId      String?   @map("user_id") @db.Uuid
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([workspaceId, type, userId], map: "notification_preferences_workspace_type_user_unique")
+  @@index([workspaceId])
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+model Notification {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        String
+  title       String
+  message     String
+  read        Boolean   @default(false)
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  readAt      DateTime? @map("read_at") @db.Timestamptz(6)
+  workspaceId String    @map("workspace_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([workspaceId])
-  @@index([supabaseAuthId])
-  @@map("users")
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model Automation {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String           @db.VarChar(255)
+  description        String?
+  triggerType        String           @default("New message") @map("trigger_type") @db.VarChar(50)
+  isActive           Boolean?         @default(false) @map("is_active")
+  messagesHandled    Int?             @default(0) @map("messages_handled")
+  config             Json?
+  createdAt          DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  instagramAccountId String           @map("instagram_account_id") @db.Uuid
+  workspaceId        String           @map("workspace_id") @db.Uuid
+  triggerKeywords    String[]         @default([]) @map("trigger_keywords")
+  responseTemplate   String?          @map("response_template")
+  instagramAccount   InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspace          Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspaceId])
+  @@index([instagramAccountId])
+  @@index([isActive])
+  @@map("automations")
+}
+
+model Lead {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId        String            @map("workspace_id") @db.Uuid
+  instagramAccountId String?           @map("instagram_account_id") @db.Uuid
+  igUserId           String            @map("ig_user_id") @db.VarChar(255)
+  igUsername         String            @map("ig_username") @db.VarChar(255)
+  fullName           String?           @map("full_name") @db.VarChar(255)
+  bio                String?
+  profilePicUrl      String?           @map("profile_pic_url")
+  followerCount      Int?              @map("follower_count")
+  followingCount     Int?              @map("following_count")
+  postCount          Int?              @map("post_count")
+  isVerified         Boolean?          @default(false) @map("is_verified")
+  isPrivate          Boolean?          @default(false) @map("is_private")
+  isBusiness         Boolean?          @default(false) @map("is_business")
+  externalUrl        String?           @map("external_url")
+  status             String?           @default("new") @db.VarChar(50)
+  tags               String[]
+  notes              String?
+  source             String?           @db.VarChar(100)
+  sourceQuery        String?           @map("source_query")
+  matchedKeywords    String[]          @map("matched_keywords")
+  dmSentAt           DateTime?         @map("dm_sent_at") @db.Timestamptz(6)
+  dmRepliedAt        DateTime?         @map("dm_replied_at") @db.Timestamptz(6)
+  createdAt          DateTime?         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime?         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  leadScore          Float?            @map("lead_score") @db.Real
+  engagementRate     Float?            @map("engagement_rate") @db.Real
+  accountAge         Int?              @map("account_age")
+  postFrequency      Float?            @map("post_frequency") @db.Real
+  email              String?
+  phone              String?
+  website            String?
+  location           String?
+  timesContacted     Int?              @default(0) @map("times_contacted")
+  lastContactedAt    DateTime?         @map("last_contacted_at") @db.Timestamptz(6)
+  lastInteractionAt  DateTime?         @map("last_interaction_at") @db.Timestamptz(6)
+  listMembers        LeadListMember[]
+  instagramAccount   InstagramAccount? @relation(fields: [instagramAccountId], references: [id], onUpdate: NoAction)
+  workspace          Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([igUserId, workspaceId])
+  @@index([workspaceId])
+  @@index([instagramAccountId])
+  @@index([status])
+  @@index([leadScore])
+  @@index([createdAt])
+  @@index([accountAge])
+  @@index([engagementRate])
+  @@index([igUsername])
+  @@map("leads")
+}
+
+model LeadList {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId    String           @map("workspace_id") @db.Uuid
+  name           String           @db.VarChar(255)
+  description    String?
+  filterKeywords String[]         @map("filter_keywords")
+  autoAdd        Boolean?         @default(false) @map("auto_add")
+  createdAt      DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  members        LeadListMember[]
+  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("lead_lists")
+}
+
+model LeadListMember {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leadListId String    @map("lead_list_id") @db.Uuid
+  leadId     String    @map("lead_id") @db.Uuid
+  addedAt    DateTime? @default(now()) @map("added_at") @db.Timestamptz(6)
+  lead       Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  leadList   LeadList  @relation(fields: [leadListId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([leadListId, leadId])
+  @@map("lead_list_members")
+}
+
+model ToolUsage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  toolType  String   @map("tool_type")
+  instaId   String?  @map("insta_id")
+  niche     String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  formData  Json?    @map("form_data")
+  ipAddress String?  @map("ip_address")
+  location  Json?
+
+  @@index([toolType])
+  @@index([createdAt])
+  @@index([createdAt(sort: Desc)], map: "idx_tool_usage_created_at")
+  @@index([toolType], map: "idx_tool_usage_tool_type")
+  @@map("tool_usage")
+}
+
+model campaign_job_debug_logs {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaign_id          String?  @db.Uuid
+  recipient_id         String?  @db.Uuid
+  instagram_account_id String?  @db.Uuid
+  stage                String
+  reason_code          String
+  reason_message       String
+  context              Json?
+  created_at           DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([campaign_id], map: "idx_debug_campaign")
+  @@index([created_at], map: "idx_debug_created_at")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ebook_leads {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email              String?
+  instagram_username String?
+  ebook_name         String
+  downloaded_at      DateTime @default(now()) @db.Timestamptz(6)
+  created_at         DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([downloaded_at], map: "idx_ebook_leads_downloaded_at")
+  @@index([ebook_name], map: "idx_ebook_leads_ebook_name")
+  @@index([email], map: "idx_ebook_leads_email")
+  @@index([instagram_username], map: "idx_ebook_leads_instagram_username")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model JobQueue {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id        String            @db.Uuid
+  campaign_id         String            @db.Uuid
+  lead_id             String            @db.Uuid
+  sender_username     String
+  job_type            String
+  payload             Json
+  scheduled_at        DateTime          @db.Timestamptz(6)
+  status              String            @default("QUEUED")
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
+  campaigns           Campaign          @relation(fields: [campaign_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  campaign_recipients CampaignRecipient @relation(fields: [lead_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  workspaces          Workspace         @relation(fields: [workspace_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("job_queue")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model waiting_list {
+  id                         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email                      String?
+  instagram_id               String?
+  created_at                 DateTime? @default(now()) @db.Timestamptz(6)
+  message                    String?
+  slack_notification_sent    Boolean?  @default(false)
+  slack_notification_sent_at DateTime? @db.Timestamptz(6)
+  slack_notification_error   String?
+
+  @@index([created_at(sort: Desc)], map: "idx_waiting_list_created_at")
 }
 
 enum UserRole {
@@ -71,133 +520,11 @@ enum UserRole {
   MEMBER
 }
 
-// ============================================================================
-// Instagram Integration Models
-// ============================================================================
-
-model InstagramAccount {
-  id                   String    @id @default(uuid())
-  igUserId             String    @map("ig_user_id") // Instagram Business Account ID
-  igUsername           String    @map("ig_username")
-  fbPageId             String    @map("fb_page_id") // Linked Facebook Page ID
-  accessToken          String    @map("access_token") // Encrypted long-lived token
-  accessTokenExpiresAt DateTime? @map("access_token_expires_at")
-  permissions          String[] // Granted permissions from OAuth
-  profilePictureUrl    String?   @map("profile_picture_url")
-  isActive             Boolean   @default(true) @map("is_active")
-  webhookSubscribed    Boolean   @default(false) @map("webhook_subscribed")
-  dailyDmLimit         Int       @default(100) @map("daily_dm_limit")
-  dmsSentToday         Int       @default(0) @map("dms_sent_today")
-  dmLimitResetAt       DateTime? @map("dm_limit_reset_at")
-  cookies              Json?     // Instagram session cookies stored as JSONB for persistent authentication
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-
-  workspaceId String    @map("workspace_id")
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  conversations Conversation[]
-  campaigns     Campaign[]
-  automations   Automation[]
-  leads         Lead[]
-  campaignAccounts CampaignAccount[]
-  assignedRecipients CampaignRecipient[]
-  dailyMessageCounts AccountDailyMessageCount[]
-
-  @@unique([igUserId, workspaceId])
-  @@index([workspaceId])
-  @@map("instagram_accounts")
-}
-
-// ============================================================================
-// Contact & Messaging Models
-// ============================================================================
-
-model Contact {
-  id                String   @id @default(uuid())
-  igUserId          String   @map("ig_user_id") // Instagram user ID of the contact
-  igUsername        String?  @map("ig_username")
-  name              String?
-  bio               String?
-  profilePictureUrl String?  @map("profile_picture_url")
-  followerCount     Int?     @map("follower_count")
-  isVerified        Boolean  @default(false) @map("is_verified")
-  tags              String[] // Custom tags for segmentation
-  notes             String?
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  workspaceId String    @map("workspace_id")
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  conversations      Conversation[]
-  campaignRecipients CampaignRecipient[]
-
-  @@unique([igUserId, workspaceId])
-  @@index([workspaceId])
-  @@index([igUsername])
-  @@map("contacts")
-}
-
-model Conversation {
-  id                 String             @id @default(uuid())
-  igThreadId         String?            @map("ig_thread_id") // Instagram's thread ID if available
-  status             ConversationStatus @default(OPEN)
-  lastMessageAt      DateTime?          @map("last_message_at")
-  unreadCount        Int                @default(0) @map("unread_count")
-  isAutomationPaused Boolean            @default(false) @map("is_automation_paused")
-  createdAt          DateTime           @default(now()) @map("created_at")
-  updatedAt          DateTime           @updatedAt @map("updated_at")
-
-  instagramAccountId String           @map("instagram_account_id")
-  instagramAccount   InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
-
-  contactId String  @map("contact_id")
-  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  messages Message[]
-
-  @@unique([instagramAccountId, contactId])
-  @@index([instagramAccountId])
-  @@index([contactId])
-  @@index([status])
-  @@index([lastMessageAt])
-  @@map("conversations")
-}
-
 enum ConversationStatus {
   OPEN
   CLOSED
   SNOOZED
   ARCHIVED
-}
-
-model Message {
-  id             String           @id @default(uuid())
-  igMessageId    String?          @unique @map("ig_message_id") // Instagram's message ID
-  content        String
-  messageType    MessageType      @default(TEXT) @map("message_type")
-  direction      MessageDirection
-  status         MessageStatus    @default(PENDING)
-  sentAt         DateTime?        @map("sent_at")
-  deliveredAt    DateTime?        @map("delivered_at")
-  readAt         DateTime?        @map("read_at")
-  errorMessage   String?          @map("error_message")
-  metadata       Json? // For attachments, quick replies, etc.
-  aiGenerated    Boolean          @default(false) @map("ai_generated")
-  campaignStepId String?          @map("campaign_step_id")
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
-
-  conversationId String       @map("conversation_id")
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  campaignStep CampaignStep? @relation(fields: [campaignStepId], references: [id], onDelete: SetNull)
-
-  @@index([conversationId])
-  @@index([createdAt])
-  @@index([status])
-  @@map("messages")
 }
 
 enum MessageType {
@@ -224,46 +551,6 @@ enum MessageStatus {
   FAILED
 }
 
-// ============================================================================
-// Campaign Models
-// ============================================================================
-
-model Campaign {
-  id              String         @id @default(uuid())
-  name            String
-  description     String?
-  status          CampaignStatus @default(DRAFT)
-  targetAudience  Json?          @map("target_audience") // Filters for selecting contacts
-  scheduledAt     DateTime?      @map("scheduled_at")
-  startedAt       DateTime?      @map("started_at")
-  completedAt     DateTime?      @map("completed_at")
-  totalRecipients Int            @default(0) @map("total_recipients")
-  sentCount       Int            @default(0) @map("sent_count")
-  failedCount     Int            @default(0) @map("failed_count")
-  replyCount      Int            @default(0) @map("reply_count")
-  sendStartTime   DateTime?      @map("send_start_time") @db.Time
-  sendEndTime     DateTime?      @map("send_end_time") @db.Time
-  timezone        String?        @default("America/New_York")
-  messagesPerDay  Int            @default(10) @map("messages_per_day")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-
-  workspaceId String    @map("workspace_id")
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  instagramAccountId String?          @map("instagram_account_id") // Nullable for backward compatibility
-  instagramAccount   InstagramAccount? @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
-
-  steps           CampaignStep[]
-  recipients      CampaignRecipient[]
-  campaignAccounts CampaignAccount[]
-
-  @@index([workspaceId])
-  @@index([instagramAccountId])
-  @@index([status])
-  @@map("campaigns")
-}
-
 enum CampaignStatus {
   DRAFT
   SCHEDULED
@@ -273,68 +560,6 @@ enum CampaignStatus {
   CANCELLED
 }
 
-model CampaignStep {
-  id              String   @id @default(uuid())
-  stepOrder       Int      @map("step_order")
-  name            String?
-  messageTemplate String?  @map("message_template") // Deprecated: Use StepVariant instead. Kept for backward compatibility
-  delayMinutes    Int      @default(0) @map("delay_minutes") // Deprecated: Use delayDays. Kept for backward compatibility
-  delayDays       Int      @default(0) @map("delay_days") // Delay after previous step in days (follow-up only if no reply)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  campaignId String   @map("campaign_id")
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  messages    Message[]
-  variants    StepVariant[]
-
-  @@index([campaignId])
-  @@map("campaign_steps")
-}
-
-model StepVariant {
-  id              String   @id @default(uuid())
-  stepId          String   @map("step_id")
-  messageTemplate String   @map("message_template") // Supports {{variable}} placeholders
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  step CampaignStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
-
-  @@index([stepId])
-  @@map("step_variants")
-}
-
-model CampaignRecipient {
-  id               String                  @id @default(uuid())
-  status           CampaignRecipientStatus @default(PENDING)
-  currentStepOrder Int                     @default(0) @map("current_step_order")
-  lastProcessedAt  DateTime?               @map("last_processed_at")
-  nextProcessAt    DateTime?               @map("next_process_at") // Deprecated: Use nextActionAt. Kept for backward compatibility
-  nextActionAt     DateTime?               @map("next_action_at") // When to process next action
-  errorMessage     String?                 @map("error_message")
-  assignedAccountId String?                @map("assigned_account_id")
-  createdAt        DateTime                @default(now()) @map("created_at")
-  updatedAt        DateTime                @updatedAt @map("updated_at")
-
-  campaignId String   @map("campaign_id")
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  contactId String  @map("contact_id")
-  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  assignedAccount InstagramAccount? @relation(fields: [assignedAccountId], references: [id], onDelete: SetNull)
-
-  @@unique([campaignId, contactId])
-  @@index([campaignId])
-  @@index([contactId])
-  @@index([status])
-  @@index([nextProcessAt])
-  @@index([nextActionAt])
-  @@index([assignedAccountId])
-  @@map("campaign_recipients")
-}
-
 enum CampaignRecipientStatus {
   PENDING
   IN_PROGRESS
@@ -342,232 +567,4 @@ enum CampaignRecipientStatus {
   REPLIED
   FAILED
   UNSUBSCRIBED
-}
-
-model CampaignAccount {
-  campaignId         String   @map("campaign_id")
-  instagramAccountId String   @map("instagram_account_id")
-  createdAt          DateTime @default(now()) @map("created_at")
-
-  campaign         Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  instagramAccount InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
-
-  @@id([campaignId, instagramAccountId])
-  @@index([campaignId])
-  @@index([instagramAccountId])
-  @@map("campaign_accounts")
-}
-
-model AccountDailyMessageCount {
-  id                 String   @id @default(uuid())
-  instagramAccountId String   @map("instagram_account_id")
-  date               DateTime @db.Date
-  messageCount       Int      @default(0) @map("message_count")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  instagramAccount InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
-
-  @@unique([instagramAccountId, date], name: "instagramAccountId_date")
-  @@index([instagramAccountId])
-  @@index([date])
-  @@map("account_daily_message_count")
-}
-
-// ============================================================================
-// Notification Models
-// ============================================================================
-
-model NotificationPreference {
-  id        String           @id @default(uuid())
-  type      NotificationType
-  email     Boolean          @default(true)
-  push      Boolean          @default(false)
-  inApp     Boolean          @default(true) @map("in_app")
-  createdAt DateTime         @default(now()) @map("created_at")
-  updatedAt DateTime         @updatedAt @map("updated_at")
-
-  workspaceId String    @map("workspace_id")
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  userId String? @map("user_id")
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([workspaceId, type, userId])
-  @@index([workspaceId])
-  @@index([userId])
-  @@map("notification_preferences")
-}
-
-enum NotificationType {
-  NEW_MESSAGE
-  CAMPAIGN_COMPLETE
-  NEW_FOLLOWER
-  WEEKLY_REPORT
-}
-
-model Notification {
-  id        String           @id @default(uuid())
-  type      NotificationType
-  title     String
-  message   String
-  read      Boolean          @default(false)
-  metadata  Json? // Additional data (e.g., conversationId, campaignId)
-  createdAt DateTime         @default(now()) @map("created_at")
-  readAt    DateTime?        @map("read_at")
-
-  workspaceId String    @map("workspace_id")
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId])
-  @@index([userId])
-  @@index([read])
-  @@index([createdAt])
-  @@map("notifications")
-}
-
-// ============================================================================
-// AI Automation Models
-// ============================================================================
-
-model Automation {
-  id               String   @id @default(uuid())
-  name             String
-  description      String?
-  triggerType      String   @map("trigger_type") // e.g., "New message", "Keyword match", "New follower"
-  triggerKeywords  String[] @map("trigger_keywords") // Keywords to match for keyword-based triggers
-  responseTemplate String?  @map("response_template") // AI-generated or custom response
-  isActive         Boolean  @default(false) @map("is_active")
-  messagesHandled  Int      @default(0) @map("messages_handled")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  workspaceId String    @map("workspace_id")
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  instagramAccountId String           @map("instagram_account_id")
-  instagramAccount   InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId])
-  @@index([instagramAccountId])
-  @@index([isActive])
-  @@map("automations")
-}
-
-// ============================================================================
-// Lead Generation Models
-// ============================================================================
-
-model Lead {
-  id                String   @id @default(uuid())
-  igUserId          String   @map("ig_user_id")
-  igUsername        String   @map("ig_username")
-  fullName          String?  @map("full_name")
-  bio               String?
-  profilePicUrl     String?  @map("profile_pic_url")
-  followerCount     Int?     @map("follower_count")
-  followingCount    Int?     @map("following_count")
-  postCount         Int?     @map("post_count")
-  isVerified        Boolean  @default(false) @map("is_verified")
-  isPrivate         Boolean  @default(false) @map("is_private")
-  isBusiness        Boolean  @default(false) @map("is_business")
-  externalUrl       String?  @map("external_url")
-  status            String   @default("new")
-  tags              String[]
-  notes             String?
-  source            String?  // e.g., "hashtag", "followers", "username"
-  sourceQuery       String?  @map("source_query")
-  matchedKeywords   String[] @map("matched_keywords")
-  
-  // Lead scoring and enrichment
-  leadScore         Float?   @map("lead_score") // AI-powered score 0-100
-  engagementRate    Float?   @map("engagement_rate") // Calculated engagement rate
-  accountAge        Int?     @map("account_age") // Account age in days
-  postFrequency     Float?   @map("post_frequency") // Posts per week
-  email             String?  // Enriched email if available
-  phone             String?  // Enriched phone if available
-  website           String?  // Enriched website if available
-  location          String?  // Location from profile
-  
-  // Lead history tracking
-  timesContacted    Int      @default(0) @map("times_contacted")
-  lastContactedAt   DateTime? @map("last_contacted_at")
-  lastInteractionAt DateTime? @map("last_interaction_at")
-  dmSentAt          DateTime? @map("dm_sent_at")
-  dmRepliedAt       DateTime? @map("dm_replied_at")
-  
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  workspaceId String    @map("workspace_id")
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  instagramAccountId String?          @map("instagram_account_id")
-  instagramAccount   InstagramAccount? @relation(fields: [instagramAccountId], references: [id], onDelete: SetNull)
-
-  listMembers LeadListMember[]
-
-  @@unique([igUserId, workspaceId])
-  @@index([workspaceId])
-  @@index([instagramAccountId])
-  @@index([status])
-  @@index([leadScore])
-  @@index([createdAt])
-  @@map("leads")
-}
-
-model LeadList {
-  id            String   @id @default(uuid())
-  name          String
-  description   String?
-  filterKeywords String[] @map("filter_keywords") // Keywords for auto-adding leads
-  autoAdd       Boolean  @default(false) @map("auto_add") // Auto-add leads matching keywords
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  workspaceId String    @map("workspace_id")
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  members LeadListMember[]
-
-  @@index([workspaceId])
-  @@map("lead_lists")
-}
-
-model LeadListMember {
-  id         String   @id @default(uuid())
-  addedAt    DateTime @default(now()) @map("added_at")
-
-  leadListId String   @map("lead_list_id")
-  leadList   LeadList @relation(fields: [leadListId], references: [id], onDelete: Cascade)
-
-  leadId String @map("lead_id")
-  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
-
-  @@unique([leadListId, leadId])
-  @@index([leadListId])
-  @@index([leadId])
-  @@map("lead_list_members")
-}
-
-// ============================================================================
-// Tool Usage Tracking
-// ============================================================================
-
-model ToolUsage {
-  id        String   @id @default(uuid())
-  toolType  String   @map("tool_type") // e.g., "brand-matcher", "username-checker", etc.
-  instaId   String?  @map("insta_id") // Instagram handle (when applicable)
-  niche     String?  // Content niche (if applicable)
-  formData  Json?    @map("form_data") // All form field data as JSON
-  ipAddress String?  @map("ip_address") // Client IP address
-  location  Json?    // IP geolocation data (city, region, country)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([toolType])
-  @@index([createdAt])
-  @@map("tool_usage")
 }

@@ -3,13 +3,7 @@
   "name": "Socialora - Instagram Session Grabber",
   "version": "1.0.3",
   "description": "Automatically connect your Instagram account to Socialora with one click",
-  "permissions": [
-    "cookies",
-    "tabs",
-    "activeTab",
-    "storage",
-    "scripting"
-  ],
+  "permissions": ["cookies", "tabs", "activeTab", "storage", "scripting"],
   "host_permissions": [
     "https://www.instagram.com/*",
     "https://instagram.com/*",
@@ -36,7 +30,8 @@
     "128": "icons/icon128.png"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "persistent": true
   },
   "content_scripts": [
     {
@@ -53,4 +48,3 @@
     }
   ]
 }
-

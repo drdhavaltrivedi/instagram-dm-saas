@@ -8,16 +8,16 @@
 // Environment indicator
 // ---------------------------------------------------------------------------
 
-const envText = document.getElementById('env-text');
+const envText = document.getElementById("env-text");
 
 function updateEnvIndicator(isProduction, url) {
   if (!envText) return;
   if (isProduction) {
     envText.textContent = `🌐 Connected to: ${url}`;
-    envText.style.color = '#22c55e';
+    envText.style.color = "#22c55e";
   } else {
     envText.textContent = `💻 Connected to: ${url} (Local)`;
-    envText.style.color = '#eab308';
+    envText.style.color = "#eab308";
   }
 }
 
@@ -25,9 +25,9 @@ CONFIG.getCurrent().then((config) => {
   updateEnvIndicator(config.isProduction, config.APP_URL);
 });
 
-chrome.storage.sync.get(['envMode'], (result) => {
+chrome.storage.sync.get(["envMode"], (result) => {
   const envMode = result.envMode || CONFIG.ENV_MODE;
-  if (envMode === 'auto') {
+  if (envMode === "auto") {
     detectEnvironment();
   }
 });
@@ -36,23 +36,23 @@ async function detectEnvironment() {
   try {
     const prodConfig = CONFIG.PRODUCTION;
     await fetch(`${prodConfig.APP_URL}/api/instagram/cookie/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cookies: { sessionId: 'test' } }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cookies: { sessionId: "test" } }),
       signal: AbortSignal.timeout(3000),
     });
-    CONFIG.setMode('production');
+    CONFIG.setMode("production");
     updateEnvIndicator(true, prodConfig.APP_URL);
   } catch {
     try {
       const localConfig = CONFIG.LOCAL;
       await fetch(`${localConfig.APP_URL}/api/instagram/cookie/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cookies: { sessionId: 'test' } }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cookies: { sessionId: "test" } }),
         signal: AbortSignal.timeout(3000),
       });
-      CONFIG.setMode('local');
+      CONFIG.setMode("local");
       updateEnvIndicator(false, localConfig.APP_URL);
     } catch {
       const prodConfig = CONFIG.PRODUCTION;
@@ -72,17 +72,23 @@ chrome.storage.onChanged.addListener(() => {
 // DOM references
 // ---------------------------------------------------------------------------
 
-const grabBtn = document.getElementById('grab-btn');
-const stopBtn = document.getElementById('stop-btn');
-const userInfo = document.getElementById('user-info');
-const userAvatar = document.getElementById('user-avatar');
-const userFullname = document.getElementById('user-fullname');
-const userUsername = document.getElementById('user-username');
+const grabBtn = document.getElementById("grab-btn");
+const stopBtn = document.getElementById("stop-btn");
+const userInfo = document.getElementById("user-info");
+const userAvatar = document.getElementById("user-avatar");
+const userFullname = document.getElementById("user-fullname");
+const userUsername = document.getElementById("user-username");
 const instructions = document.getElementById("instructions");
 const messagesTodayEl = document.getElementById("messages-today");
 const totalMessagesEl = document.getElementById("total-messages");
-const messagesTodaySkeleton = document.getElementById("messages-today-skeleton");
-const totalMessagesSkeleton = document.getElementById("total-messages-skeleton");
+const messagesTodaySkeleton = document.getElementById(
+  "messages-today-skeleton"
+);
+const totalMessagesSkeleton = document.getElementById(
+  "total-messages-skeleton"
+);
+const campaignStatus = document.getElementById("campaign-status");
+const campaignStatusText = document.getElementById("campaign-status-text");
 
 const statusNotInstagram = document.getElementById("status-not-instagram");
 const statusNotLoggedIn = document.getElementById("status-not-logged-in");
@@ -176,12 +182,16 @@ function applyStateToUI(state, user, error, tabOpen = false) {
 
 function loadStateAndRender() {
   chrome.storage.local.get(
-    ["socialora_connection_state", "socialora_connected_user", "socialora_instagram_tab_id"],
+    [
+      "socialora_connection_state",
+      "socialora_connected_user",
+      "socialora_instagram_tab_id",
+    ],
     async (result) => {
       const state = result.socialora_connection_state || STATE_IDLE;
       const user = result.socialora_connected_user || null;
       const tabId = result.socialora_instagram_tab_id || null;
-      
+
       // Check if tab is still open
       let tabOpen = false;
       if (tabId && state === STATE_CONNECTED) {
@@ -200,7 +210,7 @@ function loadStateAndRender() {
           tabOpen = false;
         }
       }
-      
+
       applyStateToUI(state, user, null, tabOpen);
 
       // Load profile picture if user is connected
@@ -303,7 +313,8 @@ function stopConnection() {
     }
     const state = response?.state || STATE_IDLE;
     const user = response?.user || null;
-    const tabClosed = response?.tabClosed !== undefined ? response.tabClosed : true;
+    const tabClosed =
+      response?.tabClosed !== undefined ? response.tabClosed : true;
     chrome.storage.local.set(
       {
         socialora_connection_state: state,
@@ -342,7 +353,7 @@ chrome.runtime.onMessage.addListener((message) => {
       });
       return; // Early return since we're handling async
     }
-    
+
     applyStateToUI(
       message.state || STATE_IDLE,
       message.user || null,
@@ -354,7 +365,7 @@ chrome.runtime.onMessage.addListener((message) => {
     const user = message.user || null;
     const tabOpen = message.tabOpen || false;
     const tabId = message.tabId || null;
-    
+
     chrome.storage.local.set(
       {
         socialora_connection_state: STATE_CONNECTED,
@@ -389,7 +400,6 @@ if (stopBtn) {
   stopBtn.addEventListener("click", stopConnection);
 }
 
-
 // ---------------------------------------------------------------------------
 // Statistics fetching
 // ---------------------------------------------------------------------------
@@ -397,7 +407,7 @@ if (stopBtn) {
 async function fetchStatistics() {
   // Show skeleton loading state
   showStatisticsSkeleton(true);
-  
+
   try {
     // Get connected Instagram account cookies
     const storageData = await new Promise((resolve) => {
@@ -500,7 +510,7 @@ function showStatisticsSkeleton(show) {
 function updateStatisticsDisplay(messagesToday, totalMessages) {
   // Hide skeleton and show actual values
   showStatisticsSkeleton(false);
-  
+
   if (messagesTodayEl) {
     messagesTodayEl.textContent = messagesToday.toString();
   }
@@ -575,15 +585,95 @@ function getInitials(name) {
 }
 
 // ---------------------------------------------------------------------------
+// Campaign job queue status
+// ---------------------------------------------------------------------------
+
+async function updateCampaignStatus() {
+  try {
+    // Check if user is connected
+    const state = await new Promise((resolve) => {
+      chrome.storage.local.get(
+        ["socialora_connection_state", "socialora_connected_user"],
+        (data) => resolve(data)
+      );
+    });
+
+    if (
+      state.socialora_connection_state !== "connected" ||
+      !state.socialora_connected_user
+    ) {
+      // Hide campaign status if not connected
+      if (campaignStatus) {
+        campaignStatus.classList.add("hidden");
+      }
+      return;
+    }
+
+    // Get pending jobs count
+    chrome.runtime.sendMessage(
+      { type: "GET_PENDING_JOBS_COUNT" },
+      (response) => {
+        if (chrome.runtime.lastError || !response || !response.success) {
+          if (campaignStatus) {
+            campaignStatus.classList.add("hidden");
+          }
+          return;
+        }
+
+        const count = response.count || 0;
+
+        if (count > 0) {
+          // Show campaign status with count
+          if (campaignStatus && campaignStatusText) {
+            campaignStatus.classList.remove("hidden");
+            campaignStatusText.textContent = `Processing ${count} scheduled message${
+              count > 1 ? "s" : ""
+            } in background...`;
+          }
+        } else {
+          // Hide if no pending jobs
+          if (campaignStatus) {
+            campaignStatus.classList.add("hidden");
+          }
+        }
+      }
+    );
+
+    // Get job queue status
+    chrome.runtime.sendMessage({ type: "GET_JOB_QUEUE_STATUS" }, (response) => {
+      if (chrome.runtime.lastError || !response || !response.success) {
+        return;
+      }
+
+      const status = response.status;
+
+      // Update status text based on processing state
+      if (status.isProcessing && campaignStatus && campaignStatusText) {
+        campaignStatusText.textContent = "Sending scheduled messages now...";
+      }
+    });
+  } catch (error) {
+    console.error("Failed to update campaign status:", error);
+    if (campaignStatus) {
+      campaignStatus.classList.add("hidden");
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 
 loadStateAndRender();
 fetchStatistics();
+updateCampaignStatus();
 
 // Refresh statistics periodically (every 30 seconds)
 setInterval(() => {
   fetchStatistics();
 }, 30000);
 
-
+// Refresh campaign status every 15 seconds
+setInterval(() => {
+  updateCampaignStatus();
+}, 15000);

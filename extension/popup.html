@@ -1,566 +1,605 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      width: 360px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0b;
-      color: #fafafa;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      min-height: 520px;
-    }
-    
-    .top-header {
-      background: #111113;
-      color: #fafafa;
-      padding: 16px 20px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border-bottom: 1px solid #27272a;
-    }
-    
-    .top-header-title {
-      font-size: 18px;
-      font-weight: 600;
-      background: linear-gradient(135deg, #fafafa 0%, #ec4899 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-      padding: 20px 20px 0;
-    }
-    
-    .logo {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-    }
-    
-    .title {
-      font-size: 18px;
-      font-weight: 600;
-    }
-    
-    .subtitle {
-      font-size: 12px;
-      color: #888;
-    }
-    
-    .status {
-      padding: 12px 16px;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid;
-    }
-    
-    .status.success {
-      background: rgba(16, 185, 129, 0.1);
-      border-color: rgba(16, 185, 129, 0.2);
-      color: #10b981;
-    }
-    
-    .status.error {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-    }
-    
-    .status.warning {
-      background: rgba(245, 158, 11, 0.1);
-      border-color: rgba(245, 158, 11, 0.2);
-      color: #f59e0b;
-    }
-    
-    .status.info {
-      background: rgba(236, 72, 153, 0.1);
-      border-color: rgba(236, 72, 153, 0.2);
-      color: #ec4899;
-    }
-    
-    .hidden {
-      display: none !important;
-    }
-    
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
-      background: #111113;
-      border: 1px solid #27272a;
-      border-radius: 12px;
-      margin-bottom: 16px;
-    }
-    
-    .user-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: linear-gradient(45deg, #f09433, #e6683c);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: 600;
-    }
-    
-    .user-avatar img {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    
-    .user-details {
-      flex: 1;
-    }
-    
-    .user-name {
-      font-weight: 600;
-      font-size: 14px;
-    }
-    
-    .user-username {
-      color: #a1a1aa;
-      font-size: 12px;
-    }
-    
-    .btn {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-    
-    .btn-primary {
-      background: linear-gradient(45deg, #a855f7, #ec4899);
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
-    }
-    
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-    
-    .btn-secondary {
-      background: #111113;
-      border: 1px solid #27272a;
-      color: #fafafa;
-      margin-top: 10px;
-    }
-    
-    .btn-secondary:hover {
-      background: #18181b;
-      border-color: #3f3f46;
-    }
-    
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(236, 72, 153, 0.2);
-      border-top-color: #ec4899;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .instructions {
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid #27272a;
-    }
-    
-    .instructions h3 {
-      font-size: 11px;
-      color: #a1a1aa;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 600;
-    }
-    
-    .instructions ol {
-      font-size: 12px;
-      color: #a1a1aa;
-      padding-left: 20px;
-      line-height: 1.6;
-    }
-    
-    .instructions li {
-      margin-bottom: 4px;
-    }
-    
-    .footer {
-      margin-top: 16px;
-      text-align: center;
-      font-size: 11px;
-      color: #666;
-    }
-    
-    .consent-dialog {
-      background: rgba(0, 0, 0, 0.95);
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 10000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    
-    .consent-content {
-      background: #111113;
-      border-radius: 12px;
-      padding: 24px;
-      max-width: 300px;
-      border: 1px solid #27272a;
-    }
-    
-    .consent-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: #fff;
-    }
-    
-    .consent-text {
-      font-size: 13px;
-      color: #a1a1aa;
-      line-height: 1.6;
-      margin-bottom: 16px;
-    }
-    
-    .consent-link {
-      color: #ec4899;
-      text-decoration: underline;
-      cursor: pointer;
-    }
-    
-    .consent-link:hover {
-      color: #f472b6;
-    }
-    
-    .consent-buttons {
-      display: flex;
-      gap: 10px;
-    }
-    
-    .btn-consent {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .btn-consent-accept {
-      background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
-      color: white;
-    }
-    
-    .btn-consent-accept:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
-    }
-    
-    .btn-consent-decline {
-      background: #111113;
-      border: 1px solid #27272a;
-      color: #fafafa;
-    }
-    
-    .btn-consent-decline:hover {
-      background: #18181b;
-      border-color: #3f3f46;
-    }
-    
-    
-    .consent-notice {
-      margin-top: 8px;
-      font-size: 11px;
-      color: #a1a1aa;
-      text-align: center;
-      line-height: 1.4;
-    }
-    
-    .consent-notice a {
-      color: #ec4899;
-      text-decoration: underline;
-      cursor: pointer;
-    }
-    
-    .consent-notice a:hover {
-      color: #f472b6;
-    }
-    
-    .stats-container {
-      display: flex;
-      gap: 12px;
-      padding: 20px;
-      background: #0a0a0b;
-    }
-    
-    .stat-card {
-      flex: 1;
-      background: #111113;
-      border: 1px solid #27272a;
-      border-radius: 12px;
-      padding: 16px;
-      text-align: center;
-      transition: all 0.2s;
-    }
-    
-    .stat-card:hover {
-      border-color: #3f3f46;
-      background: #18181b;
-    }
-    
-    .stat-label {
-      font-size: 11px;
-      color: #a1a1aa;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 500;
-    }
-    
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: #fafafa;
-      background: linear-gradient(135deg, #fafafa 0%, #ec4899 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .stat-skeleton {
-      width: 60px;
-      height: 34px;
-      background: linear-gradient(
-        90deg,
-        #27272a 0%,
-        #3f3f46 50%,
-        #27272a 100%
-      );
-      background-size: 200% 100%;
-      border-radius: 6px;
-      margin: 0 auto;
-      animation: skeleton-loading 1.5s ease-in-out infinite;
-    }
-    
-    @keyframes skeleton-loading {
-      0% {
-        background-position: 200% 0;
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
-      100% {
-        background-position: -200% 0;
+
+      body {
+        width: 360px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: #0a0a0b;
+        color: #fafafa;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 520px;
       }
-    }
-    
-    .stat-value.hidden {
-      display: none;
-    }
-    
-    .stat-skeleton.hidden {
-      display: none;
-    }
-    
-    .main-content {
-      flex: 1;
-      padding: 20px;
-      background: #0a0a0b;
-      overflow-y: auto;
-    }
-    
-    .main-button {
-      width: 100%;
-      padding: 14px 20px;
-      border: none;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
-      color: #fff;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      transition: all 0.2s;
-      margin-top: auto;
-      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-    }
-    
-    .main-button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(236, 72, 153, 0.4);
-    }
-    
-    .main-button:active {
-      transform: translateY(0);
-    }
-    
-    .main-button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-    
-    .main-button-container {
-      padding: 20px;
-      background: #111113;
-      border-top: 1px solid #27272a;
-    }
-  </style>
-</head>
-<body>
-  <!-- Top Header with Title -->
-  <div class="top-header">
-    <div class="top-header-title">Socialora</div>
-  </div>
 
-  <!-- Statistics Cards -->
-  <div class="stats-container">
-    <div class="stat-card">
-      <div class="stat-label">Messages today</div>
-      <div class="stat-skeleton" id="messages-today-skeleton"></div>
-      <div class="stat-value hidden" id="messages-today">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Total messages</div>
-      <div class="stat-skeleton" id="total-messages-skeleton"></div>
-      <div class="stat-value hidden" id="total-messages">0</div>
-    </div>
-  </div>
+      .top-header {
+        background: #111113;
+        color: #fafafa;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-bottom: 1px solid #27272a;
+      }
 
-  <!-- Main Content Area -->
-  <div class="main-content">
-    <!-- Consent Dialog -->
-  <div id="consent-dialog" class="consent-dialog hidden">
-    <div class="consent-content">
-      <div class="consent-title">🔒 Consent Required</div>
-      <div class="consent-text">
-        By clicking "I Accept", you consent to:
-        <ul style="margin-top: 8px; padding-left: 20px; font-size: 12px;">
-          <li>Extract your Instagram session cookies</li>
-          <li>Share this data with Socialora for account connection</li>
-          <li>Use your Instagram account for DM automation</li>
-        </ul>
-        <div style="margin-top: 12px; font-size: 11px;">
-          For more information, please review our 
-          <a href="https://instagram-dm-saas-h94m.vercel.app/privacy" target="_blank" class="consent-link">Privacy Policy</a>.
+      .top-header-title {
+        font-size: 18px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #fafafa 0%, #ec4899 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding: 20px 20px 0;
+      }
+
+      .logo {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(
+          45deg,
+          #f09433,
+          #e6683c,
+          #dc2743,
+          #cc2366,
+          #bc1888
+        );
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+      }
+
+      .title {
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .subtitle {
+        font-size: 12px;
+        color: #888;
+      }
+
+      .status {
+        padding: 12px 16px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid;
+      }
+
+      .status.success {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+      }
+
+      .status.error {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+      }
+
+      .status.warning {
+        background: rgba(245, 158, 11, 0.1);
+        border-color: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+      }
+
+      .status.info {
+        background: rgba(236, 72, 153, 0.1);
+        border-color: rgba(236, 72, 153, 0.2);
+        color: #ec4899;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: #111113;
+        border: 1px solid #27272a;
+        border-radius: 12px;
+        margin-bottom: 16px;
+      }
+
+      .user-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #f09433, #e6683c);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .user-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .user-details {
+        flex: 1;
+      }
+
+      .user-name {
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .user-username {
+        color: #a1a1aa;
+        font-size: 12px;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: linear-gradient(45deg, #a855f7, #ec4899);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .btn-secondary {
+        background: #111113;
+        border: 1px solid #27272a;
+        color: #fafafa;
+        margin-top: 10px;
+      }
+
+      .btn-secondary:hover {
+        background: #18181b;
+        border-color: #3f3f46;
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(236, 72, 153, 0.2);
+        border-top-color: #ec4899;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .instructions {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #27272a;
+      }
+
+      .instructions h3 {
+        font-size: 11px;
+        color: #a1a1aa;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+      }
+
+      .instructions ol {
+        font-size: 12px;
+        color: #a1a1aa;
+        padding-left: 20px;
+        line-height: 1.6;
+      }
+
+      .instructions li {
+        margin-bottom: 4px;
+      }
+
+      .footer {
+        margin-top: 16px;
+        text-align: center;
+        font-size: 11px;
+        color: #666;
+      }
+
+      .consent-dialog {
+        background: rgba(0, 0, 0, 0.95);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .consent-content {
+        background: #111113;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 300px;
+        border: 1px solid #27272a;
+      }
+
+      .consent-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #fff;
+      }
+
+      .consent-text {
+        font-size: 13px;
+        color: #a1a1aa;
+        line-height: 1.6;
+        margin-bottom: 16px;
+      }
+
+      .consent-link {
+        color: #ec4899;
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
+      .consent-link:hover {
+        color: #f472b6;
+      }
+
+      .consent-buttons {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn-consent {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-consent-accept {
+        background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+        color: white;
+      }
+
+      .btn-consent-accept:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+      }
+
+      .btn-consent-decline {
+        background: #111113;
+        border: 1px solid #27272a;
+        color: #fafafa;
+      }
+
+      .btn-consent-decline:hover {
+        background: #18181b;
+        border-color: #3f3f46;
+      }
+
+      .consent-notice {
+        margin-top: 8px;
+        font-size: 11px;
+        color: #a1a1aa;
+        text-align: center;
+        line-height: 1.4;
+      }
+
+      .consent-notice a {
+        color: #ec4899;
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
+      .consent-notice a:hover {
+        color: #f472b6;
+      }
+
+      .stats-container {
+        display: flex;
+        gap: 12px;
+        padding: 20px;
+        background: #0a0a0b;
+      }
+
+      .stat-card {
+        flex: 1;
+        background: #111113;
+        border: 1px solid #27272a;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        transition: all 0.2s;
+      }
+
+      .stat-card:hover {
+        border-color: #3f3f46;
+        background: #18181b;
+      }
+
+      .stat-label {
+        font-size: 11px;
+        color: #a1a1aa;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+      }
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #fafafa;
+        background: linear-gradient(135deg, #fafafa 0%, #ec4899 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .stat-skeleton {
+        width: 60px;
+        height: 34px;
+        background: linear-gradient(
+          90deg,
+          #27272a 0%,
+          #3f3f46 50%,
+          #27272a 100%
+        );
+        background-size: 200% 100%;
+        border-radius: 6px;
+        margin: 0 auto;
+        animation: skeleton-loading 1.5s ease-in-out infinite;
+      }
+
+      @keyframes skeleton-loading {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      .stat-value.hidden {
+        display: none;
+      }
+
+      .stat-skeleton.hidden {
+        display: none;
+      }
+
+      #campaign-status {
+        font-size: 12px;
+        padding: 10px 14px;
+      }
+
+      #campaign-status .spinner {
+        width: 14px;
+        height: 14px;
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 20px;
+        background: #0a0a0b;
+        overflow-y: auto;
+      }
+
+      .main-button {
+        width: 100%;
+        padding: 14px 20px;
+        border: none;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.2s;
+        margin-top: auto;
+        box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+      }
+
+      .main-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(236, 72, 153, 0.4);
+      }
+
+      .main-button:active {
+        transform: translateY(0);
+      }
+
+      .main-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .main-button-container {
+        padding: 20px;
+        background: #111113;
+        border-top: 1px solid #27272a;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Top Header with Title -->
+    <div class="top-header">
+      <div class="top-header-title">Socialora</div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="stat-label">Messages today</div>
+        <div class="stat-skeleton" id="messages-today-skeleton"></div>
+        <div class="stat-value hidden" id="messages-today">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total messages</div>
+        <div class="stat-skeleton" id="total-messages-skeleton"></div>
+        <div class="stat-value hidden" id="total-messages">0</div>
+      </div>
+    </div>
+
+    <!-- Campaign Background Processing Status -->
+    <div
+      id="campaign-status"
+      class="status info hidden"
+      style="margin: 16px 20px 0"
+    >
+      <div class="spinner"></div>
+      <span id="campaign-status-text">Background fetching campaigns...</span>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+      <!-- Consent Dialog -->
+      <div id="consent-dialog" class="consent-dialog hidden">
+        <div class="consent-content">
+          <div class="consent-title">🔒 Consent Required</div>
+          <div class="consent-text">
+            By clicking "I Accept", you consent to:
+            <ul style="margin-top: 8px; padding-left: 20px; font-size: 12px">
+              <li>Extract your Instagram session cookies</li>
+              <li>Share this data with Socialora for account connection</li>
+              <li>Use your Instagram account for DM automation</li>
+            </ul>
+            <div style="margin-top: 12px; font-size: 11px">
+              For more information, please review our
+              <a
+                href="https://instagram-dm-saas-h94m.vercel.app/privacy"
+                target="_blank"
+                class="consent-link"
+                >Privacy Policy</a
+              >.
+            </div>
+          </div>
+          <div class="consent-buttons">
+            <button
+              id="consent-decline"
+              class="btn-consent btn-consent-decline"
+            >
+              Decline
+            </button>
+            <button id="consent-accept" class="btn-consent btn-consent-accept">
+              I Accept
+            </button>
+          </div>
         </div>
       </div>
-      <div class="consent-buttons">
-        <button id="consent-decline" class="btn-consent btn-consent-decline">Decline</button>
-        <button id="consent-accept" class="btn-consent btn-consent-accept">I Accept</button>
+
+      <!-- Status messages (hidden by default, shown when needed) -->
+      <div id="status-not-instagram" class="status warning hidden">
+        ⚠️ Instagram tab is not available. The extension will open it for you
+        when you start.
+      </div>
+
+      <div id="status-not-logged-in" class="status error hidden">
+        ❌ Not logged in to Instagram. Please login in the opened Instagram tab.
+      </div>
+
+      <div id="status-success" class="status success hidden">
+        ✅ Connected successfully!
+      </div>
+
+      <div id="status-error" class="status error hidden">
+        ❌ <span id="error-message">Connection failed</span>
+      </div>
+
+      <div id="status-connecting" class="status info hidden">
+        <div class="spinner"></div>
+        Waiting for Instagram login...
+      </div>
+
+      <div id="user-info" class="user-info hidden">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-details">
+          <div class="user-name" id="user-fullname">Loading...</div>
+          <div class="user-username" id="user-username">@username</div>
+        </div>
+      </div>
+
+      <div id="instructions" class="instructions hidden">
+        <h3>How it works</h3>
+        <ol>
+          <li>Click "PRESS TO START" button below</li>
+          <li>We open Instagram for you in a new tab</li>
+          <li>Login or complete any Instagram security checks</li>
+          <li>
+            Click "PRESS TO STOP" when you're done – we grab cookies and close
+            the tab
+          </li>
+        </ol>
       </div>
     </div>
-  </div>
 
-    <!-- Status messages (hidden by default, shown when needed) -->
-    <div id="status-not-instagram" class="status warning hidden">
-      ⚠️ Instagram tab is not available. The extension will open it for you when you start.
+    <!-- Main Action Button -->
+    <div class="main-button-container">
+      <button id="grab-btn" class="main-button">PRESS TO START</button>
+      <button id="stop-btn" class="main-button hidden">PRESS TO STOP</button>
     </div>
 
-    <div id="status-not-logged-in" class="status error hidden">
-      ❌ Not logged in to Instagram. Please login in the opened Instagram tab.
-    </div>
-
-    <div id="status-success" class="status success hidden">
-      ✅ Connected successfully!
-    </div>
-
-    <div id="status-error" class="status error hidden">
-      ❌ <span id="error-message">Connection failed</span>
-    </div>
-
-    <div id="status-connecting" class="status info hidden">
-      <div class="spinner"></div>
-      Waiting for Instagram login...
-    </div>
-
-    <div id="user-info" class="user-info hidden">
-      <div class="user-avatar" id="user-avatar">?</div>
-      <div class="user-details">
-        <div class="user-name" id="user-fullname">Loading...</div>
-        <div class="user-username" id="user-username">@username</div>
-      </div>
-    </div>
-
-    <div id="instructions" class="instructions hidden">
-      <h3>How it works</h3>
-      <ol>
-        <li>Click "PRESS TO START" button below</li>
-        <li>We open Instagram for you in a new tab</li>
-        <li>Login or complete any Instagram security checks</li>
-        <li>Click "PRESS TO STOP" when you're done – we grab cookies and close the tab</li>
-      </ol>
-    </div>
-
-  </div>
-
-  <!-- Main Action Button -->
-  <div class="main-button-container">
-    <button id="grab-btn" class="main-button">
-      PRESS TO START
-    </button>
-    <button id="stop-btn" class="main-button hidden">
-      PRESS TO STOP
-    </button>
-  </div>
-
-  <script src="config.js"></script>
-  <script src="popup.js"></script>
-</body>
+    <script src="config.js"></script>
+    <script src="popup.js"></script>
+  </body>
 </html>
-

@@ -1,16 +1,19 @@
-import { IgApiClient } from 'instagram-private-api';
-import { prisma } from '../prisma/client';
-import type { InstagramCookies, InstagramUserInfo } from './types';
-import crypto from 'crypto';
+import { IgApiClient } from "instagram-private-api";
+import { prisma } from "../prisma/client";
+import type { InstagramCookies, InstagramUserInfo } from "./types";
+import crypto from "crypto";
 
 // Simple client cache
-const clientCache = new Map<string, { client: IgApiClient; expiresAt: number }>();
+const clientCache = new Map<
+  string,
+  { client: IgApiClient; expiresAt: number }
+>();
 
 // Encryption key from environment
 function getEncryptionKey(): string {
   const key = process.env.ENCRYPTION_KEY;
   if (!key || key.length < 32) {
-    throw new Error('ENCRYPTION_KEY must be at least 32 characters');
+    throw new Error("ENCRYPTION_KEY must be at least 32 characters");
   }
   return key.substring(0, 32);
 }
@@ -30,29 +33,33 @@ export class InstagramCookieService {
   /**
    * Creates an authenticated Instagram client using browser cookies.
    */
-  async createClientFromCookies(cookies: InstagramCookies): Promise<IgApiClient> {
+  async createClientFromCookies(
+    cookies: InstagramCookies
+  ): Promise<IgApiClient> {
     const ig = new IgApiClient();
     ig.state.generateDevice(cookies.dsUserId);
-    
+
     try {
       const cookieJar = {
-        version: 'tough-cookie@4.1.3',
-        storeType: 'MemoryCookieStore',
+        version: "tough-cookie@4.1.3",
+        storeType: "MemoryCookieStore",
         rejectPublicSuffixes: true,
         enableLooseMode: true,
         cookies: [
-          this.buildCookie('sessionid', cookies.sessionId, true),
-          this.buildCookie('csrftoken', cookies.csrfToken, false),
-          this.buildCookie('ds_user_id', cookies.dsUserId, false),
-          ...(cookies.igDid ? [this.buildCookie('ig_did', cookies.igDid, false)] : []),
-          ...(cookies.mid ? [this.buildCookie('mid', cookies.mid, false)] : []),
-          ...(cookies.rur ? [this.buildCookie('rur', cookies.rur, false)] : []),
+          this.buildCookie("sessionid", cookies.sessionId, true),
+          this.buildCookie("csrftoken", cookies.csrfToken, false),
+          this.buildCookie("ds_user_id", cookies.dsUserId, false),
+          ...(cookies.igDid
+            ? [this.buildCookie("ig_did", cookies.igDid, false)]
+            : []),
+          ...(cookies.mid ? [this.buildCookie("mid", cookies.mid, false)] : []),
+          ...(cookies.rur ? [this.buildCookie("rur", cookies.rur, false)] : []),
         ],
       };
 
       await ig.state.deserializeCookieJar(JSON.stringify(cookieJar));
       await ig.account.currentUser();
-      
+
       clientCache.set(cookies.dsUserId, {
         client: ig,
         expiresAt: Date.now() + 30 * 60 * 1000,
@@ -60,14 +67,16 @@ export class InstagramCookieService {
 
       return ig;
     } catch (error: any) {
-      const errorMsg = error?.message || 'Unknown error';
-      if (errorMsg.includes('checkpoint')) {
-        throw new Error('Instagram requires verification. Please complete security checks.');
+      const errorMsg = error?.message || "Unknown error";
+      if (errorMsg.includes("checkpoint")) {
+        throw new Error(
+          "Instagram requires verification. Please complete security checks."
+        );
       }
-      if (errorMsg.includes('login_required')) {
-        throw new Error('Session expired. Please re-login to Instagram.');
+      if (errorMsg.includes("login_required")) {
+        throw new Error("Session expired. Please re-login to Instagram.");
       }
-      throw new Error('Failed to verify Instagram session.');
+      throw new Error("Failed to verify Instagram session.");
     }
   }
 
@@ -78,8 +87,8 @@ export class InstagramCookieService {
       value,
       expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       maxAge: 31536000,
-      domain: 'instagram.com',
-      path: '/',
+      domain: "instagram.com",
+      path: "/",
       secure: true,
       httpOnly,
       extensions: [],
@@ -95,7 +104,7 @@ export class InstagramCookieService {
   async verifySession(cookies: InstagramCookies): Promise<InstagramUserInfo> {
     const ig = await this.createClientFromCookies(cookies);
     const currentUser = await ig.account.currentUser();
-    
+
     return {
       pk: currentUser.pk.toString(),
       username: currentUser.username,
@@ -106,7 +115,7 @@ export class InstagramCookieService {
       followingCount: (currentUser as any).following_count,
       postCount: (currentUser as any).media_count,
       isVerified: (currentUser as any).is_verified || false,
-      bio: (currentUser as any).biography || '',
+      bio: (currentUser as any).biography || "",
     };
   }
 
@@ -116,18 +125,22 @@ export class InstagramCookieService {
   private encryptCookies(cookies: InstagramCookies): string {
     try {
       const key = getEncryptionKey();
-      const algorithm = 'aes-256-cbc';
+      const algorithm = "aes-256-cbc";
       const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv(algorithm, Buffer.from(key, 'utf8'), iv);
-      
-      let encrypted = cipher.update(JSON.stringify(cookies), 'utf8', 'hex');
-      encrypted += cipher.final('hex');
-      
-      return iv.toString('hex') + ':' + encrypted;
+      const cipher = crypto.createCipheriv(
+        algorithm,
+        Buffer.from(key, "utf8"),
+        iv
+      );
+
+      let encrypted = cipher.update(JSON.stringify(cookies), "utf8", "hex");
+      encrypted += cipher.final("hex");
+
+      return iv.toString("hex") + ":" + encrypted;
     } catch (error) {
       // Fallback to base64 if encryption fails (for development)
-      console.warn('Encryption failed, using base64:', error);
-      return Buffer.from(JSON.stringify(cookies)).toString('base64');
+      console.warn("Encryption failed, using base64:", error);
+      return Buffer.from(JSON.stringify(cookies)).toString("base64");
     }
   }
 
@@ -137,20 +150,24 @@ export class InstagramCookieService {
   decryptCookies(encrypted: string): InstagramCookies {
     try {
       // Check if it's encrypted format (iv:encrypted) or base64
-      if (encrypted.includes(':')) {
-        const [ivHex, encryptedHex] = encrypted.split(':');
+      if (encrypted.includes(":")) {
+        const [ivHex, encryptedHex] = encrypted.split(":");
         const key = getEncryptionKey();
-        const algorithm = 'aes-256-cbc';
-        const iv = Buffer.from(ivHex, 'hex');
-        const decipher = crypto.createDecipheriv(algorithm, Buffer.from(key, 'utf8'), iv);
-        
-        let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-        
+        const algorithm = "aes-256-cbc";
+        const iv = Buffer.from(ivHex, "hex");
+        const decipher = crypto.createDecipheriv(
+          algorithm,
+          Buffer.from(key, "utf8"),
+          iv
+        );
+
+        let decrypted = decipher.update(encryptedHex, "hex", "utf8");
+        decrypted += decipher.final("utf8");
+
         return JSON.parse(decrypted);
       } else {
         // Fallback: base64 decode
-        return JSON.parse(Buffer.from(encrypted, 'base64').toString('utf8'));
+        return JSON.parse(Buffer.from(encrypted, "base64").toString("utf8"));
       }
     } catch (error: any) {
       throw new Error(`Failed to decrypt cookies: ${error.message}`);
@@ -179,7 +196,7 @@ export class InstagramCookieService {
         accessToken: encryptedCookies,
         profilePictureUrl: userInfo.profilePicUrl || null,
         isActive: true,
-        permissions: ['cookie_auth', 'dm_send', 'dm_read'],
+        permissions: ["cookie_auth", "dm_send", "dm_read"],
         accessTokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         cookies: cookies as any, // Save cookies as JSONB
       },
@@ -190,7 +207,7 @@ export class InstagramCookieService {
         fbPageId: `cookie_auth_${userInfo.pk}`,
         accessToken: encryptedCookies,
         profilePictureUrl: userInfo.profilePicUrl || null,
-        permissions: ['cookie_auth', 'dm_send', 'dm_read'],
+        permissions: ["cookie_auth", "dm_send", "dm_read"],
         accessTokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         cookies: cookies as any, // Save cookies as JSONB
       },
@@ -205,28 +222,46 @@ export class InstagramCookieService {
   /**
    * Send DM to a user by username
    */
-  async sendDM(cookies: InstagramCookies, request: { recipientUsername: string; message: string }): Promise<{ success: boolean; error?: string; threadId?: string; itemId?: string }> {
+  async sendDM(
+    cookies: InstagramCookies,
+    request: { recipientUsername: string; message: string }
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    threadId?: string;
+    itemId?: string;
+  }> {
     try {
       const ig = await this.getClient(cookies);
       const userId = await ig.user.getIdByUsername(request.recipientUsername);
       const thread = ig.entity.directThread([userId.toString()]);
-      const result = await thread.broadcastText(request.message) as any;
-      
+      const result = (await thread.broadcastText(request.message)) as any;
+
       return {
         success: true,
         threadId: result.thread_id || result.payload?.thread_id,
         itemId: result.item_id || result.payload?.item_id,
       };
     } catch (error: any) {
-      const errorMessage = error?.message || 'Unknown error';
-      if (errorMessage.includes('User not found')) {
-        return { success: false, error: `User @${request.recipientUsername} not found` };
+      const errorMessage = error?.message || "Unknown error";
+      if (errorMessage.includes("User not found")) {
+        return {
+          success: false,
+          error: `User @${request.recipientUsername} not found`,
+        };
       }
-      if (errorMessage.includes('feedback_required')) {
-        return { success: false, error: 'Instagram has temporarily blocked messaging. Please try again later.' };
+      if (errorMessage.includes("feedback_required")) {
+        return {
+          success: false,
+          error:
+            "Instagram has temporarily blocked messaging. Please try again later.",
+        };
       }
-      if (errorMessage.includes('login_required')) {
-        return { success: false, error: 'Session expired. Please re-authenticate with fresh cookies.' };
+      if (errorMessage.includes("login_required")) {
+        return {
+          success: false,
+          error: "Session expired. Please re-authenticate with fresh cookies.",
+        };
       }
       return { success: false, error: errorMessage };
     }
@@ -235,23 +270,35 @@ export class InstagramCookieService {
   /**
    * Send DM to a user by user ID
    */
-  async sendDMByUserId(cookies: InstagramCookies, userId: string, message: string): Promise<{ success: boolean; error?: string; threadId?: string; itemId?: string }> {
+  async sendDMByUserId(
+    cookies: InstagramCookies,
+    userId: string,
+    message: string
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    threadId?: string;
+    itemId?: string;
+  }> {
     try {
       // Validate user ID
-      if (!userId || userId.trim() === '') {
-        return { success: false, error: 'Invalid user ID provided' };
+      if (!userId || userId.trim() === "") {
+        return { success: false, error: "Invalid user ID provided" };
       }
 
       // Convert user ID to string (Instagram API expects string format)
       const userIdStr = String(userId).trim();
-      
+
       // Validate it's a numeric string (Instagram user IDs are numeric)
       if (!/^\d+$/.test(userIdStr)) {
-        return { success: false, error: `Invalid user ID format: ${userIdStr}. User ID must be numeric.` };
+        return {
+          success: false,
+          error: `Invalid user ID format: ${userIdStr}. User ID must be numeric.`,
+        };
       }
 
       const ig = await this.getClient(cookies);
-      
+
       // Try to get user info to validate the user exists (optional check)
       try {
         await ig.user.info(userIdStr);
@@ -262,62 +309,103 @@ export class InstagramCookieService {
       // Create thread and send message
       // Note: Instagram requires the user ID to be in the thread array
       const thread = ig.entity.directThread([userIdStr]);
-      
-      const result = await thread.broadcastText(message) as any;
-      
+
+      const result = (await thread.broadcastText(message)) as any;
+
       return {
         success: true,
         threadId: result.thread_id || result.payload?.thread_id,
         itemId: result.item_id || result.payload?.item_id,
       };
     } catch (error: any) {
-      const errorMessage = error?.message || 'Unknown error';
+      const errorMessage = error?.message || "Unknown error";
       const errorResponse = error?.response || {};
       const errorBody = errorResponse?.body || {};
-      
+
       // Log full error details for debugging
-      console.error('Instagram DM send error:', {
+      console.error("Instagram DM send error:", {
         message: errorMessage,
         status: errorResponse?.status,
         body: errorBody,
         userId: userId,
       });
-      
+
       // Handle specific Instagram error cases
-      if (errorMessage.includes('400') || errorMessage.includes('Bad Request') || errorResponse?.status === 400) {
-        if (errorMessage.includes('feedback_required') || errorResponse?.feedback_required) {
-          return { success: false, error: 'Instagram has temporarily blocked messaging. Please try again later or verify your account.' };
+      if (
+        errorMessage.includes("400") ||
+        errorMessage.includes("Bad Request") ||
+        errorResponse?.status === 400
+      ) {
+        if (
+          errorMessage.includes("feedback_required") ||
+          errorResponse?.feedback_required
+        ) {
+          return {
+            success: false,
+            error:
+              "Instagram has temporarily blocked messaging. Please try again later or verify your account.",
+          };
         }
-        if (errorMessage.includes('login_required') || errorResponse?.login_required) {
-          return { success: false, error: 'Session expired. Please re-authenticate with fresh cookies.' };
+        if (
+          errorMessage.includes("login_required") ||
+          errorResponse?.login_required
+        ) {
+          return {
+            success: false,
+            error:
+              "Session expired. Please re-authenticate with fresh cookies.",
+          };
         }
-        if (errorMessage.includes('checkpoint') || errorResponse?.checkpoint_required) {
-          return { success: false, error: 'Instagram requires verification. Please complete security checks.' };
+        if (
+          errorMessage.includes("checkpoint") ||
+          errorResponse?.checkpoint_required
+        ) {
+          return {
+            success: false,
+            error:
+              "Instagram requires verification. Please complete security checks.",
+          };
         }
-        if (errorMessage.includes('spam') || errorResponse?.spam) {
-          return { success: false, error: 'Message blocked by Instagram spam filters. Please try again later.' };
+        if (errorMessage.includes("spam") || errorResponse?.spam) {
+          return {
+            success: false,
+            error:
+              "Message blocked by Instagram spam filters. Please try again later.",
+          };
         }
-        return { 
-          success: false, 
-          error: `Instagram API error: ${errorMessage}. This might be due to invalid user ID, rate limiting, or account restrictions.` 
+        return {
+          success: false,
+          error: `Instagram API error: ${errorMessage}. This might be due to invalid user ID, rate limiting, or account restrictions.`,
         };
       }
-      
-      if (errorMessage.includes('User not found') || errorMessage.includes('not found')) {
+
+      if (
+        errorMessage.includes("User not found") ||
+        errorMessage.includes("not found")
+      ) {
         return { success: false, error: `User with ID ${userId} not found` };
       }
-      
-      if (errorMessage.includes('feedback_required')) {
-        return { success: false, error: 'Instagram has temporarily blocked messaging. Please try again later.' };
-      }
-      
-      if (errorMessage.includes('login_required')) {
-        return { success: false, error: 'Session expired. Please re-authenticate with fresh cookies.' };
+
+      if (errorMessage.includes("feedback_required")) {
+        return {
+          success: false,
+          error:
+            "Instagram has temporarily blocked messaging. Please try again later.",
+        };
       }
 
-      return { 
-        success: false, 
-        error: errorMessage || 'Failed to send DM. Please check your cookies and try again.' 
+      if (errorMessage.includes("login_required")) {
+        return {
+          success: false,
+          error: "Session expired. Please re-authenticate with fresh cookies.",
+        };
+      }
+
+      return {
+        success: false,
+        error:
+          errorMessage ||
+          "Failed to send DM. Please check your cookies and try again.",
       };
     }
   }
@@ -325,22 +413,29 @@ export class InstagramCookieService {
   /**
    * Get thread messages
    */
-  async getThreadMessages(cookies: InstagramCookies, threadId: string, limit = 50): Promise<any[]> {
+  async getThreadMessages(
+    cookies: InstagramCookies,
+    threadId: string,
+    limit = 50
+  ): Promise<any[]> {
     try {
       const ig = await this.getClient(cookies);
-      const threadFeed = ig.feed.directThread({ thread_id: threadId, oldest_cursor: '' } as any);
+      const threadFeed = ig.feed.directThread({
+        thread_id: threadId,
+        oldest_cursor: "",
+      } as any);
       const items = await threadFeed.items();
-      
+
       return items.slice(0, limit).map((item: any) => ({
         itemId: item.item_id,
-        userId: String(item.user_id || ''),
+        userId: String(item.user_id || ""),
         timestamp: Number(item.timestamp) || Date.now(),
         itemType: item.item_type,
         text: item.text,
         mediaUrl: item.media?.image_versions2?.candidates?.[0]?.url,
       }));
     } catch (error) {
-      console.error('Failed to fetch thread messages:', error);
+      console.error("Failed to fetch thread messages:", error);
       return [];
     }
   }
@@ -348,12 +443,15 @@ export class InstagramCookieService {
   /**
    * Mark thread as seen
    */
-  async markThreadAsSeen(cookies: InstagramCookies, threadId: string): Promise<void> {
+  async markThreadAsSeen(
+    cookies: InstagramCookies,
+    threadId: string
+  ): Promise<void> {
     try {
       const ig = await this.getClient(cookies);
-      await ig.directThread.markItemSeen(threadId, '');
+      await ig.directThread.markItemSeen(threadId, "");
     } catch (error) {
-      console.warn('Failed to mark thread as seen:', error);
+      console.warn("Failed to mark thread as seen:", error);
     }
   }
 
@@ -363,49 +461,65 @@ export class InstagramCookieService {
   async searchByKeyword(
     cookies: InstagramCookies,
     keyword: string,
-    searchSource: 'posts' | 'bio' | 'both',
+    searchSource: "posts" | "bio" | "both",
     limit = 50,
     bioKeywords?: string[]
   ): Promise<{ users: any[]; source: string }> {
     const allUsers: any[] = [];
     const seenUserIds = new Set<string>();
 
-    console.log(`Starting keyword search: "${keyword}", source: ${searchSource}, limit: ${limit}`);
+    console.log(
+      `Starting keyword search: "${keyword}", source: ${searchSource}, limit: ${limit}`
+    );
 
     try {
-      if (searchSource === 'posts' || searchSource === 'both') {
-        console.log('Searching hashtag posts...');
-        const hashtagUsers = await this.getHashtagUsers(cookies, keyword, Math.ceil(limit / (searchSource === 'both' ? 2 : 1)));
+      if (searchSource === "posts" || searchSource === "both") {
+        console.log("Searching hashtag posts...");
+        const hashtagUsers = await this.getHashtagUsers(
+          cookies,
+          keyword,
+          Math.ceil(limit / (searchSource === "both" ? 2 : 1))
+        );
         console.log(`Found ${hashtagUsers.length} users from hashtag posts`);
         for (const user of hashtagUsers) {
           if (!seenUserIds.has(user.pk)) {
             seenUserIds.add(user.pk);
-            allUsers.push({ ...user, source: 'hashtag_post' });
+            allUsers.push({ ...user, source: "hashtag_post" });
           }
         }
       }
 
-      if (searchSource === 'bio' || searchSource === 'both') {
-        console.log('Searching user bios...');
-        const bioUsers = await this.searchUsersByBio(cookies, keyword, Math.ceil(limit / (searchSource === 'both' ? 2 : 1)));
+      if (searchSource === "bio" || searchSource === "both") {
+        console.log("Searching user bios...");
+        const bioUsers = await this.searchUsersByBio(
+          cookies,
+          keyword,
+          Math.ceil(limit / (searchSource === "both" ? 2 : 1))
+        );
         console.log(`Found ${bioUsers.length} users from bio search`);
         for (const user of bioUsers) {
           if (!seenUserIds.has(user.pk)) {
             seenUserIds.add(user.pk);
-            allUsers.push({ ...user, source: 'bio_match' });
+            allUsers.push({ ...user, source: "bio_match" });
           }
         }
       }
 
       // If bio search returned no results, try hashtag as fallback
-      if (searchSource === 'bio' && allUsers.length === 0) {
-        console.log('Bio search returned 0 results, trying hashtag fallback...');
-        const hashtagUsers = await this.getHashtagUsers(cookies, keyword, limit);
+      if (searchSource === "bio" && allUsers.length === 0) {
+        console.log(
+          "Bio search returned 0 results, trying hashtag fallback..."
+        );
+        const hashtagUsers = await this.getHashtagUsers(
+          cookies,
+          keyword,
+          limit
+        );
         console.log(`Fallback found ${hashtagUsers.length} users from hashtag`);
         for (const user of hashtagUsers) {
           if (!seenUserIds.has(user.pk)) {
             seenUserIds.add(user.pk);
-            allUsers.push({ ...user, source: 'hashtag_post' });
+            allUsers.push({ ...user, source: "hashtag_post" });
           }
         }
       }
@@ -416,7 +530,7 @@ export class InstagramCookieService {
         source: searchSource,
       };
     } catch (error) {
-      console.error('Keyword search failed:', error);
+      console.error("Keyword search failed:", error);
       return { users: [], source: searchSource };
     }
   }
@@ -424,35 +538,41 @@ export class InstagramCookieService {
   /**
    * Search users by bio
    */
-  async searchUsersByBio(cookies: InstagramCookies, keyword: string, limit = 50): Promise<any[]> {
+  async searchUsersByBio(
+    cookies: InstagramCookies,
+    keyword: string,
+    limit = 50
+  ): Promise<any[]> {
     try {
       const ig = await this.getClient(cookies);
       const searchResults = await ig.user.search(keyword);
       const users: any[] = [];
-      
+
       // Prepare keyword variations for flexible matching
       const keywordLower = keyword.toLowerCase();
-      const keywordWords = keywordLower.split(/[\s,]+/).filter(w => w.length > 2);
-      
+      const keywordWords = keywordLower
+        .split(/[\s,]+/)
+        .filter((w) => w.length > 2);
+
       for (const user of searchResults.users) {
         if (users.length >= limit) break;
-        
+
         try {
           const profile = await ig.user.info(user.pk);
-          const bio = (profile.biography || '').toLowerCase();
+          const bio = (profile.biography || "").toLowerCase();
           const username = profile.username.toLowerCase();
-          const fullName = (profile.full_name || '').toLowerCase();
-          
+          const fullName = (profile.full_name || "").toLowerCase();
+
           // Check if keyword or its variations appear in bio, username, or full name
           let matchedInBio = false;
           let relevanceScore = 0;
-          
+
           // Exact match in bio (highest priority)
           if (bio.includes(keywordLower)) {
             matchedInBio = true;
             relevanceScore += 10;
           }
-          
+
           // Word-by-word match in bio
           for (const word of keywordWords) {
             if (bio.includes(word)) {
@@ -466,7 +586,7 @@ export class InstagramCookieService {
               relevanceScore += 1;
             }
           }
-          
+
           // If Instagram found this user relevant through search, include them
           // even if bio doesn't match perfectly (Instagram's algorithm is good)
           if (relevanceScore > 0 || users.length < 10) {
@@ -484,19 +604,19 @@ export class InstagramCookieService {
               relevanceScore,
             });
           }
-          
-          await new Promise(resolve => setTimeout(resolve, 300));
+
+          await new Promise((resolve) => setTimeout(resolve, 300));
         } catch (e) {
           console.warn(`Could not fetch profile for ${user.username}:`, e);
         }
       }
-      
+
       // Sort by relevance score (highest first)
       users.sort((a, b) => b.relevanceScore - a.relevanceScore);
-      
+
       return users;
     } catch (error) {
-      console.error('Failed to search users by bio:', error);
+      console.error("Failed to search users by bio:", error);
       return [];
     }
   }
@@ -504,32 +624,39 @@ export class InstagramCookieService {
   /**
    * Get bulk user profiles
    */
-  async getBulkUserProfiles(cookies: InstagramCookies, userIds: string[]): Promise<any[]> {
+  async getBulkUserProfiles(
+    cookies: InstagramCookies,
+    userIds: string[]
+  ): Promise<any[]> {
     const profiles: any[] = [];
-    
+
     for (const userId of userIds) {
       try {
         const profile = await this.getUserProfile(cookies, userId);
         if (profile) {
           profiles.push(profile);
         }
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 300));
       } catch (error) {
         console.warn(`Failed to fetch profile for user ${userId}`);
       }
     }
-    
+
     return profiles;
   }
 
   /**
    * Search users by query
    */
-  async searchUsers(cookies: InstagramCookies, query: string, limit = 10): Promise<InstagramUserInfo[]> {
+  async searchUsers(
+    cookies: InstagramCookies,
+    query: string,
+    limit = 10
+  ): Promise<InstagramUserInfo[]> {
     try {
       const ig = await this.getClient(cookies);
       const users = await ig.user.search(query);
-      
+
       return users.users.slice(0, limit).map((user: any) => ({
         pk: user.pk.toString(),
         username: user.username,
@@ -539,7 +666,7 @@ export class InstagramCookieService {
         followerCount: user.follower_count || 0,
       }));
     } catch (error) {
-      console.error('User search failed:', error);
+      console.error("User search failed:", error);
       return [];
     }
   }
@@ -547,23 +674,26 @@ export class InstagramCookieService {
   /**
    * Get user profile by user ID
    */
-  async getUserProfile(cookies: InstagramCookies, userId: string): Promise<any | null> {
+  async getUserProfile(
+    cookies: InstagramCookies,
+    userId: string
+  ): Promise<any | null> {
     try {
       const ig = await this.getClient(cookies);
       const user = await ig.user.info(userId);
-      
+
       let friendshipStatus: any = null;
       try {
         friendshipStatus = await ig.friendship.show(userId);
       } catch (e) {
         // Ignore friendship errors
       }
-      
+
       return {
         pk: user.pk.toString(),
         username: user.username,
         fullName: user.full_name || user.username,
-        bio: user.biography || '',
+        bio: user.biography || "",
         profilePicUrl: user.profile_pic_url,
         followerCount: (user as any).follower_count || 0,
         followingCount: (user as any).following_count || 0,
@@ -578,7 +708,7 @@ export class InstagramCookieService {
         blockedByViewer: friendshipStatus?.blocking || false,
       };
     } catch (error) {
-      console.error('Failed to get user profile:', error);
+      console.error("Failed to get user profile:", error);
       return null;
     }
   }
@@ -586,7 +716,10 @@ export class InstagramCookieService {
   /**
    * Get user profile by username
    */
-  async getUserProfileByUsername(cookies: InstagramCookies, username: string): Promise<any | null> {
+  async getUserProfileByUsername(
+    cookies: InstagramCookies,
+    username: string
+  ): Promise<any | null> {
     try {
       const ig = await this.getClient(cookies);
       const userId = await ig.user.getIdByUsername(username);
@@ -600,12 +733,15 @@ export class InstagramCookieService {
   /**
    * Get user by username (basic info)
    */
-  async getUserByUsername(cookies: InstagramCookies, username: string): Promise<any | null> {
+  async getUserByUsername(
+    cookies: InstagramCookies,
+    username: string
+  ): Promise<any | null> {
     try {
       const ig = await this.getClient(cookies);
       const user = await ig.user.searchExact(username);
       if (!user) return null;
-      
+
       return {
         pk: user.pk.toString(),
         username: user.username,
@@ -622,7 +758,11 @@ export class InstagramCookieService {
   /**
    * Get followers of a user
    */
-  async getUserFollowers(cookies: InstagramCookies, userId: string, limit = 50): Promise<any[]> {
+  async getUserFollowers(
+    cookies: InstagramCookies,
+    userId: string,
+    limit = 50
+  ): Promise<any[]> {
     try {
       const ig = await this.getClient(cookies);
       const followersFeed = ig.feed.accountFollowers(userId);
@@ -650,7 +790,7 @@ export class InstagramCookieService {
 
       return followers;
     } catch (error) {
-      console.error('Failed to get followers:', error);
+      console.error("Failed to get followers:", error);
       return [];
     }
   }
@@ -658,7 +798,11 @@ export class InstagramCookieService {
   /**
    * Get following of a user
    */
-  async getUserFollowing(cookies: InstagramCookies, userId: string, limit = 50): Promise<any[]> {
+  async getUserFollowing(
+    cookies: InstagramCookies,
+    userId: string,
+    limit = 50
+  ): Promise<any[]> {
     try {
       const ig = await this.getClient(cookies);
       const followingFeed = ig.feed.accountFollowing(userId);
@@ -686,7 +830,7 @@ export class InstagramCookieService {
 
       return following;
     } catch (error) {
-      console.error('Failed to get following:', error);
+      console.error("Failed to get following:", error);
       return [];
     }
   }
@@ -694,7 +838,11 @@ export class InstagramCookieService {
   /**
    * Get users from hashtag
    */
-  async getHashtagUsers(cookies: InstagramCookies, hashtag: string, limit = 50): Promise<any[]> {
+  async getHashtagUsers(
+    cookies: InstagramCookies,
+    hashtag: string,
+    limit = 50
+  ): Promise<any[]> {
     try {
       const ig = await this.getClient(cookies);
       const cleanHashtag = hashtag.replace(/^#/, "");
@@ -753,7 +901,7 @@ export class InstagramCookieService {
       );
       return users;
     } catch (error: any) {
-      console.error('Failed to get hashtag users:', error.message || error);
+      console.error("Failed to get hashtag users:", error.message || error);
       return [];
     }
   }
@@ -766,7 +914,7 @@ export class InstagramCookieService {
       const ig = await this.getClient(cookies);
       const inboxFeed = ig.feed.directInbox();
       const threads = await inboxFeed.items();
-      
+
       return threads.slice(0, limit).map((thread: any) => ({
         threadId: thread.thread_id,
         users: thread.users.map((u: any) => ({
@@ -779,7 +927,7 @@ export class InstagramCookieService {
         unreadCount: thread.unread_count || 0,
       }));
     } catch (error) {
-      console.error('Failed to get inbox:', error);
+      console.error("Failed to get inbox:", error);
       return [];
     }
   }
@@ -791,55 +939,56 @@ export class InstagramCookieService {
     cookies: InstagramCookies,
     username: string,
     limit = 5,
-    contentType: 'posts' | 'reels' | 'all' = 'all'
+    contentType: "posts" | "reels" | "all" = "all"
   ): Promise<any[]> {
     try {
       const ig = await this.getClient(cookies);
-      
+
       // Get user profile first
       const profile = await this.getUserProfileByUsername(cookies, username);
       if (!profile) {
-        throw new Error('User not found');
+        throw new Error("User not found");
       }
 
       // Get user feed
       const userFeed = ig.feed.user(profile.pk);
       const media: any[] = [];
-      
+
       // Fetch items
       const items = await userFeed.items();
       console.log(`[Media] Found ${items.length} media items for @${username}`);
-      
+
       for (const item of items) {
         if (media.length >= limit) break;
-        
+
         // Filter by content type
         const itemAny = item as any;
-        const isReel = item.media_type === 2 && itemAny.product_type === 'clips';
-        const isPost = item.media_type === 1 || (item.media_type === 8); // Photo or carousel
-        
-        if (contentType === 'reels' && !isReel) continue;
-        if (contentType === 'posts' && !isPost) continue;
-        
+        const isReel =
+          item.media_type === 2 && itemAny.product_type === "clips";
+        const isPost = item.media_type === 1 || item.media_type === 8; // Photo or carousel
+
+        if (contentType === "reels" && !isReel) continue;
+        if (contentType === "posts" && !isPost) continue;
+
         media.push({
           id: item.id,
           shortcode: item.code,
-          mediaType: isReel ? 'reel' : isPost ? 'post' : 'other',
+          mediaType: isReel ? "reel" : isPost ? "post" : "other",
           likeCount: item.like_count || 0,
           commentCount: item.comment_count || 0,
           playCount: itemAny.play_count || 0,
           viewCount: itemAny.view_count || 0,
-          caption: item.caption?.text || '',
-          thumbnailUrl: item.image_versions2?.candidates?.[0]?.url || '',
+          caption: item.caption?.text || "",
+          thumbnailUrl: item.image_versions2?.candidates?.[0]?.url || "",
           takenAt: item.taken_at,
           url: `https://www.instagram.com/p/${item.code}/`,
         });
       }
-      
+
       console.log(`[Media] Filtered ${media.length} ${contentType} items`);
       return media;
     } catch (error: any) {
-      console.error('Failed to get user media:', error);
+      console.error("Failed to get user media:", error);
       throw error;
     }
   }
@@ -847,26 +996,34 @@ export class InstagramCookieService {
   /**
    * Get media information by shortcode (for Reels, Posts, etc.)
    */
-  async getMediaByShortcode(cookies: InstagramCookies, shortcode: string): Promise<any | null> {
+  async getMediaByShortcode(
+    cookies: InstagramCookies,
+    shortcode: string
+  ): Promise<any | null> {
     try {
       const ig = await this.getClient(cookies);
-      
+
       // Use search to find the media by shortcode
       // Instagram API doesn't have a direct shortcode method, so we construct the URL pattern
-      const mediaInfo = await ig.media.info((await ig.media as any).getMediaIdFromShortcode(shortcode));
-      
+      const mediaInfo = await ig.media.info(
+        ((await ig.media) as any).getMediaIdFromShortcode(shortcode)
+      );
+
       return mediaInfo.items?.[0] || null;
     } catch (error) {
-      console.error('Failed to get media by shortcode:', shortcode, error);
-      
+      console.error("Failed to get media by shortcode:", shortcode, error);
+
       // Fallback: try alternative approach
       try {
         const ig = await this.getClient(cookies);
         // Try to search by URL pattern or use user feed
-        console.log('[Media] Attempting alternative fetch method for shortcode:', shortcode);
+        console.log(
+          "[Media] Attempting alternative fetch method for shortcode:",
+          shortcode
+        );
         return null; // For now, return null if primary method fails
       } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
+        console.error("Fallback also failed:", fallbackError);
         return null;
       }
     }
@@ -874,4 +1031,3 @@ export class InstagramCookieService {
 }
 
 export const instagramCookieService = new InstagramCookieService();
-
