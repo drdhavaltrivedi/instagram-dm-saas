@@ -2,6 +2,7 @@ import { IgApiClient } from 'instagram-private-api';
 import { prisma } from '../prisma/client';
 import type { InstagramCookies, InstagramUserInfo } from './types';
 import crypto from 'crypto';
+import { getRandomDelay } from '@/lib/utils/rate-limit';
 
 // Simple client cache
 const clientCache = new Map<string, { client: IgApiClient; expiresAt: number }>();
@@ -485,7 +486,9 @@ export class InstagramCookieService {
             });
           }
           
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // Use random delay to avoid rate limiting
+          const delay = getRandomDelay();
+          await new Promise(resolve => setTimeout(resolve, delay));
         } catch (e) {
           console.warn(`Could not fetch profile for ${user.username}:`, e);
         }
@@ -513,7 +516,9 @@ export class InstagramCookieService {
         if (profile) {
           profiles.push(profile);
         }
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Use random delay to avoid rate limiting
+        const delay = getRandomDelay();
+        await new Promise(resolve => setTimeout(resolve, delay));
       } catch (error) {
         console.warn(`Failed to fetch profile for user ${userId}`);
       }

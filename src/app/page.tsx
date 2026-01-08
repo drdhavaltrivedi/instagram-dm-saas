@@ -130,6 +130,12 @@ export default function HomePage() {
       router.replace(callbackUrl.pathname + callbackUrl.search);
       return;
     }
+
+    // Check for waitlist parameter to open modal directly
+    const waitlist = searchParams.get("waitlist");
+    if (waitlist === "true" || waitlist === "1") {
+      setIsWaitingListOpen(true);
+    }
   }, [searchParams, router]);
 
   // Define animateCounters with useCallback to memoize it

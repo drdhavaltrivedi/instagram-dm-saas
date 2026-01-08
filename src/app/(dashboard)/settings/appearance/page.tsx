@@ -31,6 +31,7 @@ export default function AppearancePage() {
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -50,10 +51,14 @@ export default function AppearancePage() {
       // Apply defaults
       applyPreferences({ theme: 'dark', accentColor: 'pink', fontSize: 'medium', compactMode: false });
     }
+    // Mark as initialized after loading
+    setIsInitialized(true);
   }, []);
 
-  // Track changes
+  // Track changes - only after initialization
   useEffect(() => {
+    if (!isInitialized) return;
+    
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -66,7 +71,7 @@ export default function AppearancePage() {
     } else {
       setHasChanges(true);
     }
-  }, [theme, accentColor, fontSize, compactMode]);
+  }, [theme, accentColor, fontSize, compactMode, isInitialized]);
 
   // Apply preferences to the DOM
   const applyPreferences = (prefs: AppearancePreferences) => {
@@ -141,52 +146,44 @@ export default function AppearancePage() {
     }
   };
 
-  // Apply changes immediately when settings change (optional - for preview)
+  // Preview changes as user selects them (apply to DOM for preview)
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    const currentPrefs = { theme, accentColor, fontSize, compactMode };
+    applyPreferences(currentPrefs);
+  }, [theme, accentColor, fontSize, compactMode, isInitialized]);
+
+  // Revert to saved preferences on unmount if not saved
+  useEffect(() => {
+    return () => {
+      // On cleanup, reapply saved preferences if there were unsaved changes
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const preferences: AppearancePreferences = JSON.parse(saved);
+          applyPreferences(preferences);
+        } catch (e) {
+          console.error('Failed to revert preferences:', e);
+        }
+      }
+    };
+  }, []);
+
   const handleThemeChange = (newTheme: Theme) => {
     setTheme(newTheme);
-    // Apply immediately for preview
-    const root = document.documentElement;
-    root.classList.remove('dark', 'light');
-    if (newTheme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      root.classList.add(prefersDark ? 'dark' : 'light');
-    } else {
-      root.classList.add(newTheme);
-    }
   };
 
   const handleAccentColorChange = (newColor: AccentColor) => {
     setAccentColor(newColor);
-    // Apply immediately for preview
-    const selectedColor = accentColors.find(c => c.name === newColor);
-    if (selectedColor) {
-      const root = document.documentElement;
-      root.style.setProperty('--accent-color', selectedColor.hex);
-      const hoverHex = adjustBrightness(selectedColor.hex, 20);
-      root.style.setProperty('--accent-hover', hoverHex);
-      const mutedHex = adjustBrightness(selectedColor.hex, 40);
-      root.style.setProperty('--accent-muted', mutedHex);
-    }
   };
 
   const handleFontSizeChange = (newSize: 'small' | 'medium' | 'large') => {
     setFontSize(newSize);
-    // Apply immediately for preview
-    const body = document.body;
-    body.classList.remove('text-sm', 'text-base', 'text-lg');
-    if (newSize === 'small') {
-      body.classList.add('text-sm');
-    } else if (newSize === 'large') {
-      body.classList.add('text-lg');
-    } else {
-      body.classList.add('text-base');
-    }
   };
 
   const handleCompactModeChange = (newValue: boolean) => {
     setCompactMode(newValue);
-    // Apply immediately for preview
-    document.body.classList.toggle('compact-mode', newValue);
   };
 
   return (

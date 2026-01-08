@@ -449,53 +449,25 @@ export async function processTool(toolSlug: string, formData: Record<string, str
       const photoUrl = formData['photo-url'] || formData['url'] || formData['post-url'] || Object.values(formData)[0];
       if (!photoUrl) throw new Error('Photo URL is required');
 
-      const shortcode = extractShortcodeFromUrl(photoUrl);
-      if (!shortcode) {
-        return {
-          error: 'Invalid Photo URL',
-          message: 'Please provide a valid Instagram post URL',
-        };
-      }
-
-      const serviceCookies = getServiceCookies();
-      if (!serviceCookies) {
-        return {
-          error: 'Service account not configured',
-          message: 'Instagram service account cookies are required for this tool.',
-        };
-      }
-
       try {
-        const mediaInfo = await instagramCookieService.getMediaByShortcode(
-          serviceCookies,
-          shortcode
-        );
+        // Use the photo-download API endpoint which scrapes HTML (no cookies needed)
+        const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/tools/photo-download`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ photoUrl }),
+        });
 
-        if (!mediaInfo) {
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
           return {
-            error: 'Post not found',
-            message: 'Unable to fetch post. It may be private or the URL is invalid.',
+            error: data.error || 'Failed to fetch photo',
+            message: data.message || 'Unable to fetch photo data. Please try again later.',
           };
         }
 
-        // Get image URLs (could be single or carousel)
-        const imageUrls: string[] = [];
-        if (mediaInfo.thumbnailUrl) {
-          imageUrls.push(mediaInfo.thumbnailUrl);
-        }
-
-        return {
-          success: true,
-          shortcode: mediaInfo.shortcode,
-          imageUrls,
-          caption: mediaInfo.caption,
-          username: mediaInfo.username,
-          likeCount: mediaInfo.likeCount,
-          commentCount: mediaInfo.commentCount,
-          downloadUrls: imageUrls.map((url, i) => 
-            `/api/tools/download-photo?url=${encodeURIComponent(url)}&shortcode=${shortcode}&index=${i}`
-          ),
-        };
+        return data;
       } catch (error: any) {
         console.error('Photo downloader error:', error);
         return {

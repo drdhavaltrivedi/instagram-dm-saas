@@ -634,6 +634,84 @@ export function GenericToolForm({
             </div>
           )}
 
+          {/* Photo Downloader Results */}
+          {results.imageUrls && Array.isArray(results.imageUrls) && results.imageUrls.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">
+                {results.isCarousel ? `${results.imageCount} Photos Ready to Download` : 'Photo Ready to Download'}
+              </h4>
+              <div className="space-y-4">
+                {/* Post Info */}
+                <div className="p-4 bg-background rounded-lg border border-border">
+                  {results.username && (
+                    <p className="text-sm text-foreground-muted mb-1">
+                      <span className="font-semibold">Creator:</span> @{results.username}
+                    </p>
+                  )}
+                  {results.caption && (
+                    <p className="text-sm text-foreground mt-2 mb-2 line-clamp-3">{results.caption}</p>
+                  )}
+                  <div className="flex gap-4 text-xs text-foreground-muted mt-3">
+                    {results.isCarousel && (
+                      <span>🖼️ {results.imageCount} photos</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Image Preview Grid */}
+                <div className={`grid gap-4 ${results.imageCount > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {results.imageUrls.map((imageUrl: string, index: number) => (
+                    <div key={index} className="relative rounded-lg overflow-hidden border border-border group">
+                      <img 
+                        src={imageUrl} 
+                        alt={`Photo ${index + 1}`} 
+                        className="w-full h-auto object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <a
+                          href={results.downloadUrls[index]}
+                          download
+                          className="px-4 py-2 bg-white text-black rounded-lg font-semibold hover:bg-gray-100"
+                        >
+                          Download {results.imageCount > 1 ? `Photo ${index + 1}` : 'Photo'}
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Download All Button (for carousels) */}
+                {results.imageCount > 1 && (
+                  <div className="space-y-2">
+                    {results.downloadUrls.map((url: string, index: number) => (
+                      <a
+                        key={index}
+                        href={url}
+                        download
+                        className="block w-full text-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
+                      >
+                        <ArrowRight className="inline-block h-5 w-5 mr-2" />
+                        Download Photo {index + 1}
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* Single Download Button */}
+                {results.imageCount === 1 && results.downloadUrls[0] && (
+                  <a
+                    href={results.downloadUrls[0]}
+                    download
+                    className="block w-full text-center px-6 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
+                  >
+                    <ArrowRight className="inline-block h-5 w-5 mr-2" />
+                    Download Photo
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Likes-to-Followers Ratio Results */}
           {results.percentage && results.ratio !== undefined && (
             <div>

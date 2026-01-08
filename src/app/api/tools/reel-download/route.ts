@@ -7,6 +7,151 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 /**
+ * Extract image URLs from Instagram HTML by parsing JSON data
+ */
+export function extractImageUrls(html: string): string[] {
+  try {
+    const imageUrls: string[] = [];
+    
+    // Method 1: Look for display_url (main images)
+    const displayUrlPattern = /"display_url":"([^"]+)"/g;
+    let match;
+    while ((match = displayUrlPattern.exec(html)) !== null) {
+      const url = match[1]
+        .replace(/\\u0026/g, '&')
+        .replace(/\\\//g, '/');
+      if (url.includes('.jpg') || url.includes('.jpeg')) {
+        imageUrls.push(url);
+      }
+    }
+
+    // Method 2: Look for image_versions2 candidates
+    const imageVersionPattern = /"image_versions2":\{"candidates":\[([^\]]+)\]/g;
+    while ((match = imageVersionPattern.exec(html)) !== null) {
+      const candidates = match[1];
+      const urlMatches = candidates.match(/"url":"([^"]+)"/g);
+      if (urlMatches) {
+        urlMatches.forEach(urlMatch => {
+          const url = urlMatch
+            .replace(/"url":"/g, '')
+            .replace(/"/g, '')
+            .replace(/\\u0026/g, '&')
+            .replace(/\\\//g, '/');
+          if (url.includes('.jpg') || url.includes('.jpeg')) {
+            imageUrls.push(url);
+          }
+        });
+      }
+    }
+
+    // Method 3: Look for og:image meta tag
+    const ogImagePattern = /<meta\s+property="og:image"\s+content="([^"]+)"/g;
+    while ((match = ogImagePattern.exec(html)) !== null) {
+      let url = match[1].replace(/&amp;/g, '&');
+      if (url.includes('.jpg') || url.includes('.jpeg')) {
+        imageUrls.push(url);
+      }
+    }
+
+    // Method 4: Direct CDN URLs
+    const cdnPattern = /https:\\\/\\\/[^"]+\.cdninstagram\.com[^"]+\.jpg/g;
+    const cdnMatches = html.match(cdnPattern);
+    if (cdnMatches) {
+      cdnMatches.forEach(url => {
+        const cleanUrl = url
+          .replace(/\\u0026/g, '&')
+          .replace(/\\\//g, '/');
+        imageUrls.push(cleanUrl);
+      });
+    }
+
+    // Remove duplicates and return
+    const uniqueUrls = Array.from(new Set(imageUrls));
+    console.log('[Image Extract] Found', uniqueUrls.length, 'unique images');
+    return uniqueUrls;
+  } catch (error) {
+    console.error('Error extracting image URLs:', error);
+    return [];
+  }
+}
+
+/**
+ * Extract metadata from Instagram HTML
+ */
+export function extractMetadata(html: string): { username?: string; caption?: string; thumbnailUrl?: string } {
+  try {
+    const metadata: { username?: string; caption?: string; thumbnailUrl?: string } = {};
+
+    // Extract username - try multiple patterns
+    const usernamePatterns = [
+      /"owner":\{"username":"([^"]+)"/,
+      /"username":"([^"]+)"/,
+      /instagram\.com\/([^\/\?"]+)/,
+    ];
+    
+    for (const pattern of usernamePatterns) {
+      const match = html.match(pattern);
+      if (match && match[1] && match[1] !== 'reel') {
+        metadata.username = match[1];
+        break;
+      }
+    }
+
+    // Extract caption
+    const captionPatterns = [
+      /"edge_media_to_caption":\{"edges":\[\{"node":\{"text":"([^"]+)"/,
+      /"caption":"([^"]+)"/,
+    ];
+    
+    for (const pattern of captionPatterns) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        metadata.caption = match[1].replace(/\\n/g, '\n').substring(0, 200);
+        break;
+      }
+    }
+
+    // Extract thumbnail - look for high quality images
+    const thumbnailPatterns = [
+      /"display_url":"([^"]+)"/,
+      /"thumbnail_src":"([^"]+)"/,
+      /"og:image"\s+content="([^"]+)"/,
+      /property="og:image"\s+content="([^"]+)"/,
+    ];
+    
+    for (const pattern of thumbnailPatterns) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        let url = match[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/').replace(/&amp;/g, '&');
+        if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('cdninstagram.com')) {
+          metadata.thumbnailUrl = url;
+          break;
+        }
+      }
+    }
+    
+    // Fallback: search for any cdninstagram image URLs
+    if (!metadata.thumbnailUrl) {
+      const imageMatch = html.match(/https?:[\\\/]*[^"]+cdninstagram\.com[^"]+\.jpg/);
+      if (imageMatch) {
+        metadata.thumbnailUrl = imageMatch[0].replace(/\\\//g, '/').replace(/\\u0026/g, '&');
+      }
+    }
+
+    console.log('[Metadata Extract] Extracted:', {
+      hasUsername: !!metadata.username,
+      hasCaption: !!metadata.caption,
+      hasThumbnail: !!metadata.thumbnailUrl
+    });
+
+    return metadata;
+  } catch (error) {
+    console.error('Error extracting metadata:', error);
+    return {};
+  }
+}
+
+/**
  * Extract video URL from Instagram HTML by parsing JSON data
  */
 function extractVideoUrl(html: string): string | null {
@@ -100,82 +245,6 @@ function extractVideoUrl(html: string): string | null {
   } catch (error) {
     console.error('Error extracting video URL:', error);
     return null;
-  }
-}
-
-/**
- * Extract metadata from Instagram HTML
- */
-function extractMetadata(html: string): { username?: string; caption?: string; thumbnailUrl?: string } {
-  try {
-    const metadata: { username?: string; caption?: string; thumbnailUrl?: string } = {};
-
-    // Extract username - try multiple patterns
-    const usernamePatterns = [
-      /"owner":\{"username":"([^"]+)"/,
-      /"username":"([^"]+)"/,
-      /instagram\.com\/([^\/\?"]+)/,
-    ];
-    
-    for (const pattern of usernamePatterns) {
-      const match = html.match(pattern);
-      if (match && match[1] && match[1] !== 'reel') {
-        metadata.username = match[1];
-        break;
-      }
-    }
-
-    // Extract caption
-    const captionPatterns = [
-      /"edge_media_to_caption":\{"edges":\[\{"node":\{"text":"([^"]+)"/,
-      /"caption":"([^"]+)"/,
-    ];
-    
-    for (const pattern of captionPatterns) {
-      const match = html.match(pattern);
-      if (match && match[1]) {
-        metadata.caption = match[1].replace(/\\n/g, '\n').substring(0, 200);
-        break;
-      }
-    }
-
-    // Extract thumbnail - look for high quality images
-    const thumbnailPatterns = [
-      /"display_url":"([^"]+)"/,
-      /"thumbnail_src":"([^"]+)"/,
-      /"og:image"\s+content="([^"]+)"/,
-      /property="og:image"\s+content="([^"]+)"/,
-    ];
-    
-    for (const pattern of thumbnailPatterns) {
-      const match = html.match(pattern);
-      if (match && match[1]) {
-        let url = match[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/').replace(/&amp;/g, '&');
-        if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('cdninstagram.com')) {
-          metadata.thumbnailUrl = url;
-          break;
-        }
-      }
-    }
-    
-    // Fallback: search for any cdninstagram image URLs
-    if (!metadata.thumbnailUrl) {
-      const imageMatch = html.match(/https?:[\\\/]*[^"]+cdninstagram\.com[^"]+\.jpg/);
-      if (imageMatch) {
-        metadata.thumbnailUrl = imageMatch[0].replace(/\\\//g, '/').replace(/\\u0026/g, '&');
-      }
-    }
-
-    console.log('[Reel Download] Metadata extracted:', {
-      hasUsername: !!metadata.username,
-      hasCaption: !!metadata.caption,
-      hasThumbnail: !!metadata.thumbnailUrl
-    });
-
-    return metadata;
-  } catch (error) {
-    console.error('Error extracting metadata:', error);
-    return {};
   }
 }
 
