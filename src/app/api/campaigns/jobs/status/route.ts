@@ -1,172 +1,151 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/server/prisma/client";
-import type { CampaignRecipientStatus } from "@prisma/client";
 
-/**
- * POST /api/campaigns/jobs/status
- * Updates the status of a campaign job (recipient)
- * Body: { jobId: string, status: 'SENT' | 'FAILED', error?: string }
- */
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const { jobId, status, error } = body;
+    const body = await req.json();
+    const { jobId, igMessageId, sentAt } = body;
 
-    if (!jobId || !status) {
+    if (!jobId || !igMessageId) {
       return NextResponse.json(
-        { success: false, error: "jobId and status are required" },
+        { success: false, error: "jobId and igMessageId are required" },
         { status: 400 }
       );
     }
 
-    if (!["SENT", "FAILED"].includes(status)) {
-      return NextResponse.json(
-        { success: false, error: "status must be SENT or FAILED" },
-        { status: 400 }
-      );
-    }
-
-    // Get the recipient to check current state
-    const recipient = await prisma.campaignRecipient.findUnique({
+    // --------------------------------------------------
+    // 1. FETCH JOB (AND LOCK INTENTIONALLY)
+    // --------------------------------------------------
+    const job = await prisma.jobQueue.findUnique({
       where: { id: jobId },
-      include: {
-        campaign: {
-          include: {
-            steps: {
-              orderBy: { stepOrder: "asc" },
-            },
-          },
-        },
-      },
     });
 
-    if (!recipient) {
+    if (!job) {
       return NextResponse.json(
         { success: false, error: "Job not found" },
         { status: 404 }
       );
     }
 
-    const now = new Date();
-
-    if (status === "SENT") {
-      // Message sent successfully
-      const currentStepOrder = recipient.currentStepOrder + 1;
-      const totalSteps = recipient.campaign.steps.length;
-
-      // Check if there are more steps
-      const hasMoreSteps = currentStepOrder < totalSteps;
-
-      if (hasMoreSteps) {
-        // Get the next step to calculate delay
-        const nextStep = recipient.campaign.steps.find(
-          (s) => s.stepOrder === currentStepOrder + 1
-        );
-
-        let nextActionAt = null;
-
-        if (nextStep) {
-          // Calculate next action time based on delay
-          const delayDays = nextStep.delayDays || 0;
-          // delayHours field doesn't exist in schema, using delayMinutes only
-          const delayMinutes = nextStep.delayMinutes || 0;
-
-          const totalDelayMs =
-            delayDays * 24 * 60 * 60 * 1000 + delayMinutes * 60 * 1000;
-
-          if (totalDelayMs > 0) {
-            nextActionAt = new Date(now.getTime() + totalDelayMs);
-          } else {
-            nextActionAt = now; // Process immediately if no delay
-          }
-        }
-
-        // Update recipient: increment step, set next action time
-        // Using raw SQL because nextActionAt might not be in generated Prisma types yet
-        await prisma.$executeRaw`
-          UPDATE campaign_recipients
-          SET 
-            current_step_order = ${currentStepOrder},
-            status = 'IN_PROGRESS'::"CampaignRecipientStatus",
-            last_processed_at = ${now},
-            next_action_at = ${nextActionAt},
-            error_message = NULL,
-            updated_at = ${now}
-          WHERE id = ${jobId}::uuid
-        `;
-      } else {
-        // All steps completed
-        // Using raw SQL because nextActionAt might not be in generated Prisma types yet
-        await prisma.$executeRaw`
-          UPDATE campaign_recipients
-          SET 
-            current_step_order = ${currentStepOrder},
-            status = 'COMPLETED'::"CampaignRecipientStatus",
-            last_processed_at = ${now},
-            next_action_at = NULL,
-            error_message = NULL,
-            updated_at = ${now}
-          WHERE id = ${jobId}::uuid
-        `;
-
-        // Check if campaign is complete (all recipients processed)
-        const pendingCount = await prisma.campaignRecipient.count({
-          where: {
-            campaignId: recipient.campaignId,
-            status: { in: ["PENDING", "IN_PROGRESS"] },
-          },
-        });
-
-        if (pendingCount === 0) {
-          // Campaign complete
-          await prisma.campaign.update({
-            where: { id: recipient.campaignId },
-            data: {
-              status: "COMPLETED",
-              completedAt: now,
-            },
-          });
-        }
-      }
-
-      // Increment sent count for campaign
-      await prisma.campaign.update({
-        where: { id: recipient.campaignId },
-        data: {
-          sentCount: { increment: 1 },
-        },
-      });
-    } else if (status === "FAILED") {
-      // Message failed to send
-      await prisma.campaignRecipient.update({
-        where: { id: jobId },
-        data: {
-          status: "FAILED",
-          lastProcessedAt: now,
-          errorMessage: error || "Failed to send message",
-        },
-      });
-
-      // Increment failed count for campaign
-      await prisma.campaign.update({
-        where: { id: recipient.campaignId },
-        data: {
-          failedCount: { increment: 1 },
-        },
-      });
+    // Idempotency guard
+    if (job.status === "COMPLETED") {
+      return NextResponse.json({ success: true, alreadyProcessed: true });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "Job status updated successfully",
+    // --------------------------------------------------
+    // 2. TRANSACTION (ALL OR NOTHING)
+    // --------------------------------------------------
+    await prisma.$transaction(async (tx) => {
+      const now = sentAt ? new Date(sentAt) : new Date();
+
+      // ----------------------------------------------
+      // 2.1 MARK JOB COMPLETED
+      // ----------------------------------------------
+      await tx.jobQueue.update({
+        where: { id: job.id },
+        data: {
+          status: "COMPLETED",
+          updatedAt: now,
+        },
+      });
+
+      // ----------------------------------------------
+      // 2.2 DAILY MESSAGE COUNT
+      // ----------------------------------------------
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
+
+      await tx.accountDailyMessageCount.upsert({
+        where: {
+          instagramAccountId_date: {
+            instagramAccountId: job.senderInstagramAccountId!,
+            date: today,
+          },
+        },
+        update: {
+          messageCount: { increment: 1 },
+          updatedAt: now,
+        },
+        create: {
+          instagramAccountId: job.senderInstagramAccountId!,
+          date: today,
+          messageCount: 1,
+        },
+      });
+
+      // ----------------------------------------------
+      // 2.3 CONVERSATION (UPSERT)
+      // ----------------------------------------------
+      const conversation = await tx.conversation.upsert({
+        where: {
+          instagramAccountId_contactId: {
+            instagramAccountId: job.senderInstagramAccountId!,
+            contactId: job.recipientUserId!,
+          },
+        },
+        update: {
+          lastMessageAt: now,
+        },
+        create: {
+          instagramAccountId: job.senderInstagramAccountId!,
+          contactId: job.recipientUserId!,
+          status: "OPEN",
+          lastMessageAt: now,
+        },
+      });
+
+      // ----------------------------------------------
+      // 2.4 INSERT MESSAGE
+      // ----------------------------------------------
+      // Safely extract message and step_id from job.payload
+      let messageContent: string | undefined = undefined;
+      let campaignStepId: string | undefined = undefined;
+      if (job.payload && typeof job.payload === "object" && job.payload !== null) {
+        // @ts-ignore
+        messageContent = job.payload.message;
+        // @ts-ignore
+        campaignStepId = job.payload.step_id;
+      }
+
+      await tx.message.create({
+        data: {
+          igMessageId: igMessageId,
+          content: messageContent ?? "",
+          direction: "OUTBOUND",
+          status: "SENT",
+          sentAt: now,
+          conversationId: conversation.id,
+          campaignStepId: campaignStepId,
+        },
+      });
+
+      // ----------------------------------------------
+      // 2.5 UPDATE RECIPIENT
+      // ----------------------------------------------
+      await tx.campaignRecipient.update({
+        where: { id: job.leadId },
+        data: {
+          lastProcessedAt: now,
+        },
+      });
+
+      // ----------------------------------------------
+      // 2.6 UPDATE CAMPAIGN COUNTERS
+      // ----------------------------------------------
+      await tx.campaign.update({
+        where: { id: job.campaignId },
+        data: {
+          sentCount: { increment: 1 },
+          updatedAt: now,
+        },
+      });
     });
-  } catch (error: any) {
-    console.error("Error updating job status:", error);
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("❌ Job completion failed:", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to update job status",
-      },
+      { success: false, error: err.message || "Job update failed" },
       { status: 500 }
     );
   }
