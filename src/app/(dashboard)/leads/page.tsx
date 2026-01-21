@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Search, 
   Users, 
@@ -160,6 +160,15 @@ function matchKeywordsInBio(bio: string, keywords: string[]): string[] {
   return Array.from(new Set(matched)); // Remove duplicates
 }
 
+// Decode HTML entities in text
+function decodeHTMLEntities(text: string): string {
+  if (!text) return '';
+  
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+}
+
 export default function LeadsPage() {
   const { capture } = usePostHog();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -177,6 +186,12 @@ export default function LeadsPage() {
   const [hasMoreResults, setHasMoreResults] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [targetUserId, setTargetUserId] = useState<string | null>(null); // For followers search
+  
+  // Hashtag posts state
+  const [hashtagPosts, setHashtagPosts] = useState<any[]>([]);
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [isLoadingPostDetails, setIsLoadingPostDetails] = useState(false);
   
   // Hashtag search now defaults to bio only (posts option removed)
   
@@ -355,6 +370,458 @@ export default function LeadsPage() {
   
   // State for search errors
   const [searchError, setSearchError] = useState<string | null>(null);
+  
+  // Extension-based hashtag scraping
+  const [extensionAvailable, setExtensionAvailable] = useState(false);
+  const [waitingForExtensionData, setWaitingForExtensionData] = useState(false);
+  const instagramTabRef = useRef<Window | null>(null);
+
+  // Check if extension is available
+  useEffect(() => {
+    const checkExtension = () => {
+      window.postMessage({ type: 'SOCIALORA_PING' }, window.location.origin);
+    };
+    
+    const handlePong = () => {
+      setExtensionAvailable(true);
+      console.log('[Leads] Extension detected');
+    };
+    
+    window.addEventListener('socialora_pong', handlePong);
+    checkExtension();
+    
+    return () => {
+      window.removeEventListener('socialora_pong', handlePong);
+    };
+  }, []);
+
+  // Listen for hashtag data from extension
+  useEffect(() => {
+    const handleHashtagData = async (data: any) => {
+      console.log('[Leads] Received hashtag data from extension:', data);
+      console.log('[Leads] Posts:', data.posts?.length, 'Usernames:', data.usernames?.length);
+      
+      const { hashtag, posts, usernames } = data;
+      
+      // Store posts for display
+      setHashtagPosts(posts || []);
+      
+      // Close the Instagram tab and focus back on app
+      if (instagramTabRef.current) {
+        try {
+          // Check if tab is still open before trying to close
+          if (!instagramTabRef.current.closed) {
+            instagramTabRef.current.close();
+            console.log('[Leads] Closed Instagram tab');
+          } else {
+            console.log('[Leads] Instagram tab already closed');
+          }
+        } catch (e) {
+          console.error('[Leads] Could not close tab:', e);
+        }
+        instagramTabRef.current = null;
+      }
+      
+      // Focus back on the app window
+      window.focus();
+      
+      // Process the data
+      setWaitingForExtensionData(false);
+      
+      if (!usernames || usernames.length === 0) {
+        toast.error('No usernames found', {
+          description: `Found ${posts?.length || 0} posts but couldn't extract usernames. Instagram may have changed their page structure.`,
+        });
+        return;
+      }
+      
+      toast.success(`Found ${posts?.length || 0} posts from #${hashtag}!`, {
+        description: `Extracting profiles from ${usernames.length} users...`,
+      });
+      
+      // Fetch profiles for the usernames
+      await fetchProfilesFromUsernames(usernames, hashtag);
+    };
+    
+    // Listen via window.postMessage
+    const messageListener = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'SOCIALORA_HASHTAG_DATA_AVAILABLE') {
+        console.log('[Leads] Received via postMessage:', event.data);
+        handleHashtagData(event.data.data);
+      }
+    };
+    
+    // Listen via custom event (more reliable for extension -> page communication)
+    const customEventListener = (event: any) => {
+      if (event.detail && event.detail.type === 'SOCIALORA_HASHTAG_DATA_AVAILABLE') {
+        console.log('[Leads] Received via custom event:', event.detail);
+        handleHashtagData(event.detail.data);
+      }
+    };
+    
+    window.addEventListener('message', messageListener);
+    window.addEventListener('socialora_hashtag_data', customEventListener as EventListener);
+    
+    return () => {
+      window.removeEventListener('message', messageListener);
+      window.removeEventListener('socialora_hashtag_data', customEventListener as EventListener);
+    };
+  }, []);
+
+  // Fetch profiles from usernames list
+  const fetchProfilesFromUsernames = async (usernames: string[], source: string) => {
+    setIsSearching(true);
+    setSearchResults([]);
+    
+    const users: any[] = [];
+    let keywords: string[] = [];
+    
+    // Get bio keywords for filtering
+    if (selectedPreset) {
+      const preset = KEYWORD_PRESETS.find(p => p.name === selectedPreset);
+      keywords = preset?.keywords || [];
+    }
+    const customKeywords = bioKeywords.split(',').map(k => k.trim()).filter(k => k);
+    keywords = [...keywords, ...customKeywords];
+    
+    toast.info(`Fetching ${usernames.length} profiles...`, {
+      description: keywords.length > 0 ? 'Filtering by bio keywords' : 'This may take a minute',
+    });
+    
+    for (let i = 0; i < usernames.length; i++) {
+      const username = usernames[i];
+      
+      try {
+        const response = await fetch('/api/leads/scrape-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        });
+        
+        if (response.ok) {
+          const profileData = await response.json();
+          
+          // Filter by bio keywords if provided
+          if (keywords.length > 0) {
+            const bio = (profileData.bio || '').toLowerCase();
+            const hasMatch = keywords.some(kw => bio.includes(kw.toLowerCase()));
+            if (!hasMatch) continue;
+            
+            profileData.matchedKeywords = keywords.filter(kw =>
+              bio.includes(kw.toLowerCase())
+            );
+          }
+          
+          users.push({
+            pk: username,
+            username,
+            fullName: profileData.fullName || username,
+            profilePicUrl: profileData.profilePicUrl || '',
+            bio: profileData.bio || '',
+            followerCount: profileData.followerCount || 0,
+            followingCount: profileData.followingCount || 0,
+            postCount: profileData.postCount || 0,
+            isPrivate: profileData.isPrivate || false,
+            isVerified: profileData.isVerified || false,
+            isBusiness: profileData.isBusiness || false,
+            source: source,
+            matchedKeywords: profileData.matchedKeywords || [],
+          });
+        }
+        
+        // Update progress
+        if ((i + 1) % 5 === 0) {
+          toast.info(`Progress: ${i + 1}/${usernames.length} profiles`);
+        }
+        
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 800));
+      } catch (err) {
+        console.error(`Failed to fetch profile for ${username}:`, err);
+      }
+    }
+    
+    setSearchResults(users);
+    setIsSearching(false);
+    
+    toast.success(`Found ${users.length} profiles!`, {
+      description: keywords.length > 0 ? `Filtered by bio keywords` : '',
+    });
+    
+    capture('lead_search_performed', {
+      search_type: 'hashtag_extension',
+      results_count: users.length,
+      source: source,
+    });
+  };
+
+  // Fetch post details by shortcode
+  const fetchPostDetails = async (shortcode: string) => {
+    if (!shortcode) return null;
+    
+    setIsLoadingPostDetails(true);
+    try {
+      console.log('[Leads] Fetching post details for:', shortcode);
+      const response = await fetch(`/api/instagram/post/${shortcode}`);
+      const data = await response.json();
+      
+      console.log('[Leads] API response:', data);
+      
+      if (data.success && data.post) {
+        console.log('[Leads] Successfully fetched post details:', {
+          username: data.post.owner?.username,
+          followerCount: data.post.owner?.followerCount,
+          hasOwner: !!data.post.owner
+        });
+        return data.post;
+      }
+      
+      console.error('[Leads] Failed to fetch post details:', data.error);
+      toast.error('Could not fetch post details', {
+        description: data.error || 'The post may be private or unavailable'
+      });
+      return null;
+    } catch (error) {
+      console.error('[Leads] Error fetching post details:', error);
+      toast.error('Error loading post details');
+      return null;
+    } finally {
+      setIsLoadingPostDetails(false);
+    }
+  };
+
+  // Handle post selection and fetch details if needed
+  const handlePostSelection = async (post: any) => {
+    console.log('[Leads] Post selected:', post);
+    setSelectedPost(post);
+    setShowPostModal(true);
+    
+    // Try to extract username from various sources
+    let username = post.username || post.owner?.username;
+    
+    // Filter out invalid usernames (common false positives from alt text)
+    const invalidUsernames = ['Photo', 'photo', 'Image', 'image', 'Video', 'video', 'Post', 'post', 'Best', 'best', 'New', 'new', 'Latest', 'latest', 'Top', 'top', 'null'];
+    if (username && invalidUsernames.includes(username)) {
+      username = null;
+    }
+    
+    // If no username but we have shortcode, scrape the post to get username
+    if (!username && post.shortcode) {
+      console.log('[Leads] No username in cache, scraping post to get account info:', post.shortcode);
+      setIsLoadingPostDetails(true);
+      
+      try {
+        // Scrape the post page to get username
+        const postResponse = await fetch('/api/instagram/scrape-post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shortcode: post.shortcode }),
+        });
+        
+        const postData = await postResponse.json();
+        console.log('[Leads] Post scrape response:', postData);
+        
+        if (postData.success && postData.username) {
+          username = postData.username;
+          console.log('[Leads] Successfully extracted username from post:', username);
+          
+          // Update post with username and caption
+          setSelectedPost({
+            ...post,
+            username: username,
+            caption: postData.caption,
+          });
+        } else {
+          console.error('[Leads] Failed to scrape post:', postData.error);
+          setIsLoadingPostDetails(false);
+          toast.error('Could not identify account', {
+            description: 'Unable to determine who posted this. Try opening on Instagram.'
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('[Leads] Error scraping post:', error);
+        setIsLoadingPostDetails(false);
+        toast.error('Error loading post details');
+        return;
+      }
+    }
+    
+    if (!username) {
+      console.log('[Leads] No valid username found');
+      return;
+    }
+    
+    // If owner info is missing or incomplete, fetch user profile
+    const hasCompleteOwnerInfo = post.owner && 
+      (post.owner.followerCount !== undefined || 
+       post.owner.followingCount !== undefined);
+    
+    console.log('[Leads] Has complete owner info:', hasCompleteOwnerInfo, 'Username:', username);
+    
+    if (!hasCompleteOwnerInfo) {
+      console.log('[Leads] Fetching profile for username:', username);
+      setIsLoadingPostDetails(true);
+      
+      try {
+        // Use the no-auth scraper API to get profile info
+        const response = await fetch('/api/leads/scrape-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        });
+        
+        const profileData = await response.json();
+        console.log('[Leads] Profile data response:', profileData);
+        
+        if (profileData.success) {
+          // Update the post with owner information from profile
+          const updatedPost = {
+            ...post,
+            username: username,
+            caption: post.caption,
+            owner: {
+              username: profileData.username,
+              fullName: profileData.fullName,
+              profilePicUrl: profileData.profilePicUrl,
+              isVerified: profileData.isVerified,
+              followerCount: profileData.followerCount,
+              followingCount: profileData.followingCount,
+              postCount: profileData.postCount,
+              biography: profileData.bio,
+            }
+          };
+          console.log('[Leads] Updated post with profile data:', updatedPost);
+          setSelectedPost(updatedPost);
+          
+          toast.success('Account info loaded', {
+            description: `@${username}`,
+          });
+        } else {
+          console.error('[Leads] Failed to fetch profile:', profileData.error);
+          toast.error('Could not load account info', {
+            description: profileData.error || 'Profile may be private'
+          });
+        }
+      } catch (error) {
+        console.error('[Leads] Error fetching profile:', error);
+        toast.error('Error loading account info');
+      } finally {
+        setIsLoadingPostDetails(false);
+      }
+    }
+  };
+
+  // Trigger extension-based hashtag scraping
+  const handleHashtagSearchViaExtension = (hashtag: string) => {
+    const cleanHashtag = hashtag.replace('#', '').trim();
+    
+    // Clear old posts before starting new search
+    setHashtagPosts([]);
+    
+    // Close any existing Instagram tab
+    if (instagramTabRef.current && !instagramTabRef.current.closed) {
+      try {
+        instagramTabRef.current.close();
+        console.log('[Leads] Closed previous Instagram tab');
+      } catch (e) {
+        console.error('[Leads] Could not close previous tab:', e);
+      }
+      instagramTabRef.current = null;
+    }
+    
+    // Open Instagram in new tab and wait for extension to scrape
+    const instagramUrl = `https://www.instagram.com/explore/tags/${cleanHashtag}/`;
+    
+    console.log('[Leads] Opening Instagram hashtag URL:', instagramUrl);
+    
+    toast.info('Opening Instagram...', {
+      description: 'The extension will scrape hashtag data automatically. Tab will close automatically.',
+      duration: 5000,
+    });
+    
+    setWaitingForExtensionData(true);
+    
+    // Open the URL
+    const newTab = window.open(instagramUrl, '_blank');
+    if (!newTab) {
+      toast.error('Failed to open Instagram tab', {
+        description: 'Please allow popups for this site',
+      });
+      setWaitingForExtensionData(false);
+      return;
+    }
+    
+    // Store tab reference for later closing
+    instagramTabRef.current = newTab;
+    
+    console.log('[Leads] Opened tab for hashtag:', cleanHashtag);
+    
+    // Poll chrome.storage for data (fallback method)
+    let pollCount = 0;
+    const pollInterval = setInterval(() => {
+      pollCount++;
+      console.log('[Leads] Polling chrome.storage for hashtag data, attempt:', pollCount);
+      
+      // Check chrome.storage.local for data
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        chrome.storage.local.get(['socialora_hashtag_data'], (result) => {
+          if (chrome.runtime.lastError) {
+            console.error('[Leads] Storage access error:', chrome.runtime.lastError);
+            return;
+          }
+          
+          const storedData = result.socialora_hashtag_data;
+          if (storedData && storedData.data) {
+            console.log('[Leads] Found hashtag data in storage!', storedData.data);
+            
+            // Clear the stored data
+            chrome.storage.local.remove(['socialora_hashtag_data']);
+            
+            // Process the data
+            clearInterval(pollInterval);
+            setWaitingForExtensionData(false);
+            
+            const { hashtag, posts, usernames } = storedData.data;
+            
+            // Store the posts for display
+            if (posts && posts.length > 0) {
+              setHashtagPosts(posts);
+              console.log('[Leads] Stored', posts.length, 'posts from hashtag');
+            }
+            
+            // Close the Instagram tab
+            if (instagramTabRef.current && !instagramTabRef.current.closed) {
+              try {
+                instagramTabRef.current.close();
+                console.log('[Leads] Closed Instagram tab via chrome.storage method');
+              } catch (e) {
+                console.error('[Leads] Could not close tab:', e);
+              }
+              instagramTabRef.current = null;
+            }
+            
+            // Focus back on the app window
+            window.focus();
+            
+            toast.success(`Found ${posts.length} posts from #${hashtag}!`);
+            fetchProfilesFromUsernames(usernames, hashtag);
+          }
+        });
+      }
+      
+      // Stop polling after 30 seconds
+      if (pollCount >= 30) {
+        clearInterval(pollInterval);
+        if (waitingForExtensionData) {
+          setWaitingForExtensionData(false);
+          toast.error('Timeout', {
+            description: 'Did not receive data from extension. Make sure the Socialora extension is installed and the Instagram tab loaded completely.',
+          });
+        }
+      }
+    }, 1000); // Poll every second
+  };
 
   // Search users
   const handleSearch = async (loadMore = false, overrideQuery?: string, overrideType?: 'username' | 'hashtag' | 'followers') => {
@@ -366,6 +833,22 @@ export default function LeadsPage() {
     
     if (!query.trim()) {
       setSearchError('Please enter a search query');
+      return;
+    }
+    
+    // For hashtag search, use extension if available
+    if (type === 'hashtag') {
+      if (!extensionAvailable) {
+        toast.error('Extension required', {
+          description: 'Hashtag search requires the Socialora Chrome Extension.',
+          duration: 5000,
+        });
+        setSearchError('Please install the Socialora Chrome Extension to use hashtag search.');
+        setIsSearching(false);
+        return;
+      }
+      
+      handleHashtagSearchViaExtension(query);
       return;
     }
     
@@ -405,6 +888,12 @@ export default function LeadsPage() {
           body.limit = Math.min(currentLimit, 50); // Username search limited to 50
           break;
         case 'hashtag':
+          // Fallback to API if extension not available
+          if (!extensionAvailable) {
+            setSearchError('Hashtag search requires the Socialora Chrome extension. Please install it from the Chrome Web Store.');
+            setIsSearching(false);
+            return;
+          }
           endpoint = `/api/instagram/cookie/hashtag/${query.replace('#', '')}/users`;
           body.limit = currentLimit;
           body.searchSource = 'bio'; // Always use bio search for hashtags
@@ -1244,9 +1733,14 @@ export default function LeadsPage() {
                 icon: Search,
                 label: "Search Target Audience",
               },
-              { type: "hashtag", icon: Hash, label: "Hashtag" },
+              { 
+                type: "hashtag", 
+                icon: Hash, 
+                label: "Hashtag (via Extension)",
+                badge: extensionAvailable ? "✓" : "⚠️"
+              },
               { type: "followers", icon: Users, label: "User's Followers" },
-            ].map(({ type, icon: Icon, label }) => (
+            ].map(({ type, icon: Icon, label, badge }) => (
               <button
                 key={type}
                 onClick={() => setSearchType(type as any)}
@@ -1259,9 +1753,35 @@ export default function LeadsPage() {
                 <Icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{label}</span>
                 <span className="sm:hidden">{label.split(" ")[0]}</span>
+                {badge && <span className="text-xs opacity-75">{badge}</span>}
               </button>
             ))}
           </div>
+
+          {/* Extension status for hashtag */}
+          {searchType === 'hashtag' && !extensionAvailable && (
+            <div className="mb-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <div className="space-y-2">
+                <p className="text-sm text-amber-400 flex items-center gap-2 font-medium">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Extension required for hashtag search</span>
+                </p>
+                <p className="text-xs text-amber-300/80">
+                  Install the Socialora Chrome Extension to enable hashtag scraping. The extension will automatically extract usernames from Instagram hashtag pages.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Waiting for extension data */}
+          {waitingForExtensionData && (
+            <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <p className="text-sm text-blue-400 flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span>Scraping Instagram hashtag page... Keep the tab open for 10-15 seconds.</span>
+              </p>
+            </div>
+          )}
 
           {/* Search Input */}
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -1570,6 +2090,62 @@ export default function LeadsPage() {
           )}
 
           {/* Search Results */}
+          {/* Hashtag Posts Grid */}
+          {hashtagPosts.length > 0 && (
+            <div className="mb-6 border-t border-border pt-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Hashtag Posts ({hashtagPosts.length})
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setHashtagPosts([])}
+                >
+                  Clear Posts
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                {hashtagPosts.map((post, index) => (
+                  <div
+                    key={post.id || index}
+                    onClick={() => handlePostSelection(post)}
+                    className="aspect-square cursor-pointer relative group overflow-hidden rounded-lg bg-background-elevated"
+                  >
+                    {post.thumbnail ? (
+                      <img
+                        src={post.thumbnail}
+                        alt={`Post ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-background-muted">
+                        <Hash className="h-8 w-8 text-foreground-muted" />
+                      </div>
+                    )}
+                    
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white text-sm">
+                      {post.likeCount !== undefined && (
+                        <div className="flex items-center gap-1">
+                          <span>❤️</span>
+                          <span>{post.likeCount}</span>
+                        </div>
+                      )}
+                      {post.commentCount !== undefined && (
+                        <div className="flex items-center gap-1">
+                          <span>💬</span>
+                          <span>{post.commentCount}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {(searchResults.length > 0 || displayedSearchResults.length > 0) && (
             <div className="border-t border-border pt-4">
               {/* Search info header */}
@@ -3038,6 +3614,290 @@ export default function LeadsPage() {
         }}
         isAlreadyLead={leads.some(l => l.igUsername === profileModalUsername)}
       />
+
+      {/* Post Detail Modal */}
+      {showPostModal && selectedPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" onClick={() => setShowPostModal(false)}>
+          <div 
+            className="bg-background rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-xl"
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('[Post Modal] Selected post data:', selectedPost);
+            }}
+          >
+            <div className="flex flex-col md:flex-row">
+              {/* Post Image */}
+              <div className="flex-1 bg-black flex items-center justify-center">
+                {selectedPost.thumbnail || selectedPost.displayUrl ? (
+                  <img
+                    src={selectedPost.thumbnail || selectedPost.displayUrl}
+                    alt="Post"
+                    className="max-w-full max-h-[70vh] object-contain"
+                  />
+                ) : (
+                  <div className="w-full aspect-square flex items-center justify-center">
+                    <Hash className="h-24 w-24 text-foreground-muted" />
+                  </div>
+                )}
+              </div>
+
+              {/* Post Details */}
+              <div className="w-full md:w-96 p-6 flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-foreground">Post Details</h3>
+                  <button
+                    onClick={() => setShowPostModal(false)}
+                    className="p-2 hover:bg-background-elevated rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 text-foreground-muted" />
+                  </button>
+                </div>
+
+                {/* Loading State */}
+                {isLoadingPostDetails && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <RefreshCw className="h-8 w-8 text-accent animate-spin mb-3" />
+                    <p className="text-foreground-muted">Fetching post details...</p>
+                  </div>
+                )}
+
+                {!isLoadingPostDetails && (
+                  <div className="space-y-4 flex-1 overflow-y-auto">
+                  {/* Debug Info */}
+                  {console.log('[Post Modal] Rendering with data:', {
+                    hasUsername: !!(selectedPost.username || selectedPost.owner?.username),
+                    username: selectedPost.username || selectedPost.owner?.username,
+                    hasOwner: !!selectedPost.owner,
+                    ownerKeys: selectedPost.owner ? Object.keys(selectedPost.owner) : [],
+                    ownerData: selectedPost.owner
+                  })}
+                  
+                  {/* Check if username is invalid */}
+                  {(() => {
+                    const username = selectedPost.username || selectedPost.owner?.username;
+                    const invalidUsernames = ['Photo', 'photo', 'Image', 'image', 'Video', 'video', 'Post', 'post', 'Best', 'best', 'New', 'new', 'Latest', 'latest', 'Top', 'top'];
+                    const isInvalidUsername = !username || invalidUsernames.includes(username);
+                    
+                    if (isInvalidUsername) {
+                      return (
+                        <div className="space-y-4">
+                          <div className="p-4 rounded-lg bg-background-elevated border border-yellow-500/20">
+                            <div className="flex items-start gap-3 mb-3">
+                              <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium text-foreground mb-1">
+                                  Account info not captured
+                                </p>
+                                <p className="text-xs text-foreground-muted">
+                                  The extension couldn't identify who posted this. Click the button below to view the post on Instagram and see the account details.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Prominent Instagram button */}
+                          {selectedPost.postUrl && (
+                            <a
+                              href={selectedPost.postUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-3 px-6 py-4 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl font-semibold text-base"
+                            >
+                              <Instagram className="h-6 w-6" />
+                              Open Post on Instagram
+                            </a>
+                          )}
+                          
+                          {/* Post Stats if available */}
+                          {(selectedPost.likeCount !== undefined || selectedPost.commentCount !== undefined) && (
+                            <div className="grid grid-cols-2 gap-3">
+                              {selectedPost.likeCount !== undefined && (
+                                <div className="p-4 rounded-lg bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-pink-500/20">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-lg">❤️</span>
+                                    <p className="text-xs text-foreground-muted">Likes</p>
+                                  </div>
+                                  <p className="text-xl font-bold text-foreground">
+                                    {selectedPost.likeCount.toLocaleString()}
+                                  </p>
+                                </div>
+                              )}
+                              {selectedPost.commentCount !== undefined && (
+                                <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-lg">💬</span>
+                                    <p className="text-xs text-foreground-muted">Comments</p>
+                                  </div>
+                                  <p className="text-xl font-bold text-foreground">
+                                    {selectedPost.commentCount.toLocaleString()}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                  })()}
+                  
+                  {/* Username & Profile Info */}
+                  {(() => {
+                    const username = selectedPost.username || selectedPost.owner?.username;
+                    const invalidUsernames = ['Photo', 'photo', 'Image', 'image', 'Video', 'video', 'Post', 'post', 'Best', 'best', 'New', 'new', 'Latest', 'latest', 'Top', 'top'];
+                    const hasValidUsername = username && !invalidUsernames.includes(username);
+                    
+                    return hasValidUsername ? (
+                    <div className="p-4 rounded-lg bg-background-elevated border border-border">
+                      <p className="text-xs text-foreground-muted mb-2">Posted by</p>
+                      <button
+                        onClick={() => {
+                          const username = selectedPost.username || selectedPost.owner?.username;
+                          setProfileModalUsername(username);
+                          setShowLeadProfileModal(true);
+                          setShowPostModal(false);
+                        }}
+                        className="flex items-center gap-3 hover:bg-background-muted/50 p-2 rounded-lg transition-colors w-full"
+                      >
+                        {selectedPost.owner?.profilePicUrl ? (
+                          <img
+                            src={selectedPost.owner.profilePicUrl}
+                            alt="Profile"
+                            className="w-12 h-12 rounded-full border-2 border-accent/30"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
+                            <Users className="h-6 w-6 text-accent" />
+                          </div>
+                        )}
+                        <div className="flex-1 text-left">
+                          <p className="font-semibold text-foreground">
+                            @{selectedPost.username || selectedPost.owner?.username}
+                          </p>
+                          {selectedPost.owner?.fullName && (
+                            <p className="text-sm text-foreground-muted">
+                              {selectedPost.owner.fullName}
+                            </p>
+                          )}
+                        </div>
+                        <CheckCircle2 className="h-5 w-5 text-accent" />
+                      </button>
+                      
+                      {/* Account Stats */}
+                      {selectedPost.owner && (selectedPost.owner.followerCount !== undefined || 
+                        selectedPost.owner.followingCount !== undefined || 
+                        selectedPost.owner.postCount !== undefined) ? (
+                        <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border">
+                          {selectedPost.owner.followerCount !== undefined && (
+                            <div className="text-center">
+                              <p className="text-lg font-bold text-foreground">
+                                {selectedPost.owner.followerCount >= 1000 
+                                  ? `${(selectedPost.owner.followerCount / 1000).toFixed(1)}k`
+                                  : selectedPost.owner.followerCount}
+                              </p>
+                              <p className="text-xs text-foreground-muted">Followers</p>
+                            </div>
+                          )}
+                          {selectedPost.owner.followingCount !== undefined && (
+                            <div className="text-center">
+                              <p className="text-lg font-bold text-foreground">
+                                {selectedPost.owner.followingCount >= 1000 
+                                  ? `${(selectedPost.owner.followingCount / 1000).toFixed(1)}k`
+                                  : selectedPost.owner.followingCount}
+                              </p>
+                              <p className="text-xs text-foreground-muted">Following</p>
+                            </div>
+                          )}
+                          {selectedPost.owner.postCount !== undefined && (
+                            <div className="text-center">
+                              <p className="text-lg font-bold text-foreground">
+                                {selectedPost.owner.postCount}
+                              </p>
+                              <p className="text-xs text-foreground-muted">Posts</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <p className="text-xs text-foreground-muted text-center italic">
+                            Click to view full profile details
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : null;
+                  })()}
+
+                  {/* Caption - only show for valid username posts */}
+                  {selectedPost.caption && (selectedPost.username || selectedPost.owner?.username) && (
+                    <div className="p-4 rounded-lg bg-background-elevated border border-border">
+                      <p className="text-xs text-foreground-muted mb-2">Caption</p>
+                      <p className="text-sm text-foreground line-clamp-4">
+                        {decodeHTMLEntities(selectedPost.caption)}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Post Stats */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedPost.likeCount !== undefined && (
+                      <div className="p-4 rounded-lg bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-pink-500/20">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">❤️</span>
+                          <p className="text-xs text-foreground-muted">Likes</p>
+                        </div>
+                        <p className="text-xl font-bold text-foreground">
+                          {selectedPost.likeCount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {selectedPost.commentCount !== undefined && (
+                      <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">💬</span>
+                          <p className="text-xs text-foreground-muted">Comments</p>
+                        </div>
+                        <p className="text-xl font-bold text-foreground">
+                          {selectedPost.commentCount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Engagement Rate */}
+                  {selectedPost.owner?.followerCount && selectedPost.likeCount !== undefined && (
+                    <div className="p-4 rounded-lg bg-background-elevated border border-border">
+                      <p className="text-xs text-foreground-muted mb-2">Estimated Engagement Rate</p>
+                      <p className="text-2xl font-bold text-accent">
+                        {((selectedPost.likeCount / selectedPost.owner.followerCount) * 100).toFixed(2)}%
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Post URL - only show if we have valid username */}
+                  {(() => {
+                    const username = selectedPost.username || selectedPost.owner?.username;
+                    const invalidUsernames = ['Photo', 'photo', 'Image', 'image', 'Video', 'video', 'Post', 'post', 'Best', 'best', 'New', 'new', 'Latest', 'latest', 'Top', 'top'];
+                    const hasValidUsername = username && !invalidUsernames.includes(username);
+                    
+                    return hasValidUsername && selectedPost.postUrl ? (
+                      <a
+                        href={selectedPost.postUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl font-semibold"
+                      >
+                        <Instagram className="h-5 w-5" />
+                        Open Post on Instagram
+                      </a>
+                    ) : null;
+                  })()}
+                </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -484,6 +484,59 @@ async function handleCookiesReady(cookies) {
 // ---------------------------------------------------------------------------
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Handle hashtag data scraped from Instagram tab
+  if (message.type === 'HASHTAG_DATA_SCRAPED') {
+    console.log('[Background] Received hashtag data from tab:', sender.tab?.id);
+    console.log('[Background] Data:', { hashtag: message.data?.hashtag, posts: message.data?.posts?.length, usernames: message.data?.usernames?.length });
+    
+    // Store in chrome.storage as primary delivery method
+    chrome.storage.local.set({
+      'socialora_hashtag_data': {
+        data: message.data,
+        timestamp: Date.now()
+      }
+    }, () => {
+      console.log('[Background] ✓ Hashtag data stored in chrome.storage.local');
+    });
+    
+    // Also try to forward to all app tabs
+    chrome.tabs.query({}, (tabs) => {
+      console.log('[Background] Checking tabs:', tabs.length);
+      let sentCount = 0;
+      
+      tabs.forEach((tab) => {
+        const isAppTab = tab.url && (
+          tab.url.includes('localhost:3000') || 
+          tab.url.includes('localhost:3001') ||
+          tab.url.includes('socialora.app') ||
+          tab.url.includes('vercel.app')
+        );
+        
+        if (isAppTab) {
+          console.log('[Background] Sending to app tab:', tab.id, tab.url);
+          chrome.tabs.sendMessage(tab.id, {
+            type: 'HASHTAG_DATA_FROM_EXTENSION',
+            data: message.data
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.log('[Background] Tab not ready:', tab.id, chrome.runtime.lastError.message);
+            } else {
+              console.log('[Background] ✓ Hashtag data delivered to tab:', tab.id);
+              sentCount++;
+            }
+          });
+        }
+      });
+      
+      setTimeout(() => {
+        console.log('[Background] Sent to', sentCount, 'app tab(s)');
+      }, 500);
+    });
+    
+    sendResponse({ success: true });
+    return true;
+  }
+
   // Legacy helpers used by content script / popup
   if (message.type === 'GET_COOKIES') {
     getInstagramCookies().then(sendResponse);
