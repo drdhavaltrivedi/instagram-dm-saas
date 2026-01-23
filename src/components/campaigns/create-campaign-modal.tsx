@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
 import { TimeRangePicker, getUserTimezone } from "@/components/campaigns/time-range-picker";
 import { MessagesPerDaySlider } from "@/components/campaigns/messages-per-day-slider";
 import { MessageSequenceBuilder, type MessageStep } from "@/components/campaigns/message-sequence-builder";
@@ -554,13 +555,12 @@ function RecipientsStep({
                   className="rounded border-border"
                 />
                 <div className="flex items-center gap-2 flex-1">
-                  {contact.profilePictureUrl && (
-                    <img
-                      src={contact.profilePictureUrl}
-                      alt={contact.igUsername}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
+                  <Avatar
+                    src={contact.profilePictureUrl}
+                    alt={contact.igUsername}
+                    name={contact.name || contact.igUsername}
+                    size="sm"
+                  />
                   <div>
                     <p className="text-sm font-medium text-foreground">
                       {contact.name || contact.igUsername}
@@ -597,13 +597,12 @@ function RecipientsStep({
                   className="rounded border-border"
                 />
                 <div className="flex items-center gap-2 flex-1">
-                  {lead.profilePictureUrl && (
-                    <img
-                      src={lead.profilePictureUrl}
-                      alt={lead.igUsername}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
+                  <Avatar
+                    src={lead.profilePictureUrl}
+                    alt={lead.igUsername}
+                    name={lead.name || lead.igUsername}
+                    size="sm"
+                  />
                   <div>
                     <p className="text-sm font-medium text-foreground">
                       {lead.name || lead.igUsername}

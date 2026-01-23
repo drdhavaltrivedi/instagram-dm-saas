@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MessageCircle, CheckCircle, Clock, User } from 'lucide-react';
+import { MessageCircle, CheckCircle, Clock } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { NewCampaignData } from './create-campaign-modal';
+import { formatTimeTo12Hour } from '@/lib/utils/helper';
 
 interface Recipient {
   id: string;
@@ -187,7 +188,7 @@ export function RepliesPreview({ recipients, campaign, className }: RepliesPrevi
           <div>
             <p className="text-foreground-muted">Time Range</p>
             <p className="font-medium text-foreground">
-              {campaign.sendStartTime} - {campaign.sendEndTime} (
+              {formatTimeTo12Hour(campaign.sendStartTime)} - {formatTimeTo12Hour(campaign.sendEndTime)} (
               {campaign.timezone})
             </p>
           </div>
