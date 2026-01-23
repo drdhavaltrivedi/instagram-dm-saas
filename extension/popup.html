@@ -416,6 +416,39 @@
       display: none;
     }
     
+    .browser-warning {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 12px;
+      color: #fbbf24;
+    }
+    
+    .browser-warning.hidden {
+      display: none;
+    }
+    
+    .warning-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    
+    .warning-text {
+      flex: 1;
+      line-height: 1.5;
+    }
+    
+    .warning-text strong {
+      color: #fbbf24;
+      font-weight: 600;
+    }
+    
     .main-content {
       flex: 1;
       padding: 20px;
@@ -545,6 +578,14 @@
         <li>Login or complete any Instagram security checks</li>
         <li>Click "PRESS TO STOP" when you're done – we grab cookies and close the tab</li>
       </ol>
+    </div>
+
+    <!-- Browser Close Warning -->
+    <div id="browser-close-warning" class="browser-warning hidden">
+      <div class="warning-icon">⚠️</div>
+      <div class="warning-text">
+        <strong>Important:</strong> Closing your browser will stop sending DMs. Keep the browser open for automation to continue.
+      </div>
     </div>
 
   </div>

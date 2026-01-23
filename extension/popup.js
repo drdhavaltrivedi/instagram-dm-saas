@@ -83,6 +83,7 @@ const messagesTodayEl = document.getElementById("messages-today");
 const totalMessagesEl = document.getElementById("total-messages");
 const messagesTodaySkeleton = document.getElementById("messages-today-skeleton");
 const totalMessagesSkeleton = document.getElementById("total-messages-skeleton");
+const browserCloseWarning = document.getElementById("browser-close-warning");
 
 const statusNotInstagram = document.getElementById("status-not-instagram");
 const statusNotLoggedIn = document.getElementById("status-not-logged-in");
@@ -132,6 +133,8 @@ function applyStateToUI(state, user, error, tabOpen = false, isQueueActive = fal
     setButtonsDisabled(false);
     instructions.classList.add("hidden");
     userInfo.classList.add("hidden");
+    // Hide warning when idle
+    if (browserCloseWarning) browserCloseWarning.classList.add("hidden");
   } else if (state === STATE_CONNECTING) {
     grabBtn.classList.add("hidden");
     if (stopBtn) stopBtn.classList.remove("hidden");
@@ -139,6 +142,8 @@ function applyStateToUI(state, user, error, tabOpen = false, isQueueActive = fal
     setButtonsDisabled(false);
     showStatus(statusConnecting);
     instructions.classList.add("hidden");
+    // Hide warning when connecting
+    if (browserCloseWarning) browserCloseWarning.classList.add("hidden");
   } else if (state === STATE_CONNECTED) {
     // If queue is active, show STOP button; otherwise show START button
     if (isQueueActive) {
@@ -147,10 +152,14 @@ function applyStateToUI(state, user, error, tabOpen = false, isQueueActive = fal
         stopBtn.classList.remove("hidden");
         stopBtn.textContent = "PRESS TO STOP";
       }
+      // Show warning when queue is active
+      if (browserCloseWarning) browserCloseWarning.classList.remove("hidden");
     } else {
       grabBtn.classList.remove("hidden");
       if (stopBtn) stopBtn.classList.add("hidden");
       grabBtn.textContent = "PRESS TO START";
+      // Hide warning when queue is inactive
+      if (browserCloseWarning) browserCloseWarning.classList.add("hidden");
     }
     setButtonsDisabled(false);
     instructions.classList.add("hidden");
