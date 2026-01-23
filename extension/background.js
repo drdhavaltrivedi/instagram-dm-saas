@@ -721,9 +721,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Configuration (in minutes for chrome.alarms API)
 const JOB_POLL_INTERVAL_MINS = 5; // Poll for new jobs every 5 minutes
-const MIN_DELAY_MINS = 0.1; // 6 seconds base delay between DMs
-const JITTER_MINS = 0.1; // Up to 6 seconds of extra randomness
-const RETRY_DELAY_MINS = 0.5; // 30 seconds retry delay on failure
+const MIN_DELAY_MINS = 5; // 5 minutes base delay between DMs
+const JITTER_MINS = 5; // Up to 5 minutes of extra randomness
+const RETRY_DELAY_MINS = 1; // 1 minute retry delay on failure
 
 // Instagram DM URL (will be used to find/create background tab)
 const INSTAGRAM_DM_URL = 'https://www.instagram.com/direct/inbox/';
