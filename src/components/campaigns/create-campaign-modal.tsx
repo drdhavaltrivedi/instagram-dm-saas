@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
 import { TimeRangePicker, getUserTimezone } from "@/components/campaigns/time-range-picker";
 import { MessagesPerDaySlider } from "@/components/campaigns/messages-per-day-slider";
 import { MessageSequenceBuilder, type MessageStep } from "@/components/campaigns/message-sequence-builder";
@@ -157,7 +158,32 @@ export function CreateCampaignModal({
 
     setIsCreating(true);
     try {
-      await onCreate(campaign);
+      // Calculate cumulative delay_days for each step based on stepOrder
+      // Sort steps by order to calculate cumulative delays
+      const sortedSteps = [...campaign.messageSteps].sort(
+        (a, b) => a.stepOrder - b.stepOrder
+      );
+      
+      // Calculate cumulative delays
+      let cumulativeDelay = 0;
+      const delayMap = new Map<number, number>();
+      sortedSteps.forEach((step) => {
+        cumulativeDelay += step.delayDays || 0;
+        delayMap.set(step.stepOrder, cumulativeDelay);
+      });
+
+      // Update steps with cumulative delays while preserving original array order
+      const stepsWithCumulativeDelay = campaign.messageSteps.map((step) => ({
+        ...step,
+        delayDays: delayMap.get(step.stepOrder) ?? step.delayDays ?? 0,
+      }));
+
+      const campaignWithCumulativeDelays = {
+        ...campaign,
+        messageSteps: stepsWithCumulativeDelay,
+      };
+
+      await onCreate(campaignWithCumulativeDelays);
       onClose();
     } catch (error) {
       console.error("Error creating campaign:", error);
@@ -682,7 +708,7 @@ function RecipientsStep({
               No leads available
             </p>
           ) : (
-            leads.map((lead) => (
+            leads.filter((lead: any) => lead.status !== "contacted").map((lead: Lead) => (
               <label
                 key={lead.id}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-background-elevated cursor-pointer"
@@ -694,13 +720,12 @@ function RecipientsStep({
                   className="rounded border-border"
                 />
                 <div className="flex items-center gap-2 flex-1">
-                  {lead.profilePictureUrl && (
-                    <img
-                      src={lead.profilePictureUrl}
-                      alt={lead.igUsername}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
+                  <Avatar
+                    src={lead.profilePictureUrl}
+                    alt={lead.igUsername}
+                    name={lead.name || lead.igUsername}
+                    size="sm"
+                  />
                   <div>
                     <p className="text-sm font-medium text-foreground">
                       {lead.name || lead.igUsername}
