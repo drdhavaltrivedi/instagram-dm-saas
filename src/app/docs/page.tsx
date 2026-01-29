@@ -455,6 +455,30 @@ export default function DocsPage() {
                   </p>
                 </div>
 
+                <div className="bg-background-elevated rounded-xl p-6 border border-border mb-6">
+                  <h4 className="text-lg font-semibold text-foreground mb-3">How Campaigns Work</h4>
+                  <p className="text-foreground-muted leading-relaxed mb-4">
+                    Campaigns send messages through your browser to ensure security and reliability. Here's what you need to know:
+                  </p>
+                  <ul className="list-disc list-inside space-y-2 text-foreground-muted mb-4">
+                    <li><strong className="text-foreground">Browser must be open:</strong> Messages are sent only when your browser is open. You don't need to keep the SocialOra tab open or active - you can work on other tabs while campaigns run in the background</li>
+                    <li><strong className="text-foreground">Automatic pause:</strong> When you close your browser, campaign sending automatically stops</li>
+                    <li><strong className="text-foreground">Resume campaigns:</strong> After reopening your browser, click the <strong className="text-foreground">"Press to Start"</strong> button to resume sending messages</li>
+                    <li><strong className="text-foreground">Progress saved:</strong> Your campaign progress is saved, so you won't lose any data when you close the browser</li>
+                  </ul>
+                  <div className="bg-gradient-to-br from-accent/10 via-pink-500/10 to-accent/10 rounded-lg p-4 border border-border">
+                    <div className="flex items-start gap-3">
+                      <Zap className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground mb-1">Pro Tip</p>
+                        <p className="text-sm text-foreground-muted">
+                          Keep your browser open during active campaigns for best results. You can switch to other tabs or applications - campaigns will continue running in the background. If you need to close the browser, just click "Press to Start" when you return to continue where you left off.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <h3 className="text-2xl font-semibold text-foreground mb-4 mt-8">Campaign Best Practices</h3>
                 <div className="space-y-4 mb-6">
                   <div className="bg-background-elevated rounded-lg p-4 border border-border">
@@ -666,6 +690,10 @@ export default function DocsPage() {
                       <div>
                         <strong className="text-foreground">Problem:</strong> Messages not sending
                         <p className="mt-1"><strong className="text-foreground">Solution:</strong> Check if your Instagram account is still connected. Verify rate limits aren't being exceeded. Make sure the recipient hasn't blocked you.</p>
+                      </div>
+                      <div>
+                        <strong className="text-foreground">Problem:</strong> Campaign stopped sending
+                        <p className="mt-1"><strong className="text-foreground">Solution:</strong> Campaigns only send messages when your browser is open. If you closed your browser, reopen it and click the <strong className="text-foreground">"Press to Start"</strong> button to resume sending. You don't need to keep the SocialOra tab open - campaigns run in the background as long as your browser is open.</p>
                       </div>
                       <div>
                         <strong className="text-foreground">Problem:</strong> Low response rate

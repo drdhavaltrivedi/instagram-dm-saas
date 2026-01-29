@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
 import { TimeRangePicker, getUserTimezone } from "@/components/campaigns/time-range-picker";
 import { MessagesPerDaySlider } from "@/components/campaigns/messages-per-day-slider";
 import { MessageSequenceBuilder, type MessageStep } from "@/components/campaigns/message-sequence-builder";
@@ -111,7 +112,32 @@ export function CreateCampaignModal({
 
     setIsCreating(true);
     try {
-      await onCreate(campaign);
+      // Calculate cumulative delay_days for each step based on stepOrder
+      // Sort steps by order to calculate cumulative delays
+      const sortedSteps = [...campaign.messageSteps].sort(
+        (a, b) => a.stepOrder - b.stepOrder
+      );
+      
+      // Calculate cumulative delays
+      let cumulativeDelay = 0;
+      const delayMap = new Map<number, number>();
+      sortedSteps.forEach((step) => {
+        cumulativeDelay += step.delayDays || 0;
+        delayMap.set(step.stepOrder, cumulativeDelay);
+      });
+
+      // Update steps with cumulative delays while preserving original array order
+      const stepsWithCumulativeDelay = campaign.messageSteps.map((step) => ({
+        ...step,
+        delayDays: delayMap.get(step.stepOrder) ?? step.delayDays ?? 0,
+      }));
+
+      const campaignWithCumulativeDelays = {
+        ...campaign,
+        messageSteps: stepsWithCumulativeDelay,
+      };
+
+      await onCreate(campaignWithCumulativeDelays);
       onClose();
     } catch (error) {
       console.error("Error creating campaign:", error);
@@ -239,21 +265,51 @@ export function CreateCampaignModal({
                         type="datetime-local"
                         value={
                           campaign.scheduled_at
-                            ? new Date(campaign.scheduled_at).toISOString().slice(0, 16)
+                            ? (() => {
+                                // Convert UTC ISO string to local datetime-local format
+                                // datetime-local expects YYYY-MM-DDTHH:mm in local timezone
+                                const utcDate = new Date(campaign.scheduled_at);
+                                const year = utcDate.getFullYear();
+                                const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+                                const day = String(utcDate.getDate()).padStart(2, '0');
+                                const hours = String(utcDate.getHours()).padStart(2, '0');
+                                const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+                                return `${year}-${month}-${day}T${hours}:${minutes}`;
+                              })()
                             : ""
                         }
                         onChange={(e) => {
                           const dateTime = e.target.value;
                           if (dateTime) {
-                            const isoString = new Date(dateTime).toISOString();
+                            // Convert local datetime-local format to UTC ISO string
+                            // new Date(dateTime) interprets the value as local time
+                            const localDate = new Date(dateTime);
+                            const isoString = localDate.toISOString();
                             setCampaign((prev) => ({
                               ...prev,
                               scheduled_at: isoString,
                             }));
+                          } else {
+                            setCampaign((prev) => ({
+                              ...prev,
+                              scheduled_at: undefined,
+                            }));
                           }
                         }}
-                        min={new Date().toISOString().slice(0, 16)}
-                        className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
+                        min={(() => {
+                          // Get current local time in datetime-local format
+                          const now = new Date();
+                          const year = now.getFullYear();
+                          const month = String(now.getMonth() + 1).padStart(2, '0');
+                          const day = String(now.getDate()).padStart(2, '0');
+                          const hours = String(now.getHours()).padStart(2, '0');
+                          const minutes = String(now.getMinutes()).padStart(2, '0');
+                          return `${year}-${month}-${day}T${hours}:${minutes}`;
+                        })()}
+                        className="w-full px-4 py-3 rounded-lg bg-background !border-none text-foreground placeholder:text-foreground-subtle !outline-none transition-all [color-scheme:dark]"
+                        style={{
+                          colorScheme: 'dark',
+                        }}
                       />
                       <p className="text-xs text-foreground-subtle mt-1.5">
                         Select when you want the campaign to start
@@ -292,7 +348,7 @@ export function CreateCampaignModal({
                         setCampaign((prev) => ({ ...prev, name: e.target.value }))
                       }
                       placeholder="e.g., Holiday Promotion 2025"
-                      className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder-foreground-subtle focus:border-accent  !outline-none !ring-0 transition-all"
                     />
                     <p className="text-xs text-foreground-subtle mt-1.5">
                       Give your campaign a memorable name
@@ -313,7 +369,7 @@ export function CreateCampaignModal({
                       }
                       placeholder="What is this campaign about? (Optional)"
                       rows={3}
-                      className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder-foreground-subtle focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none resize-none transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder-foreground-subtle focus:border-accent  !outline-none !ring-0 resize-none transition-all"
                     />
                     <p className="text-xs text-foreground-subtle mt-1.5">
                       Add context about your campaign goals
@@ -524,13 +580,12 @@ function RecipientsStep({
                   className="rounded border-border"
                 />
                 <div className="flex items-center gap-2 flex-1">
-                  {contact.profilePictureUrl && (
-                    <img
-                      src={contact.profilePictureUrl}
-                      alt={contact.igUsername}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
+                  <Avatar
+                    src={contact.profilePictureUrl}
+                    alt={contact.igUsername}
+                    name={contact.name || contact.igUsername}
+                    size="sm"
+                  />
                   <div>
                     <p className="text-sm font-medium text-foreground">
                       {contact.name || contact.igUsername}
@@ -556,7 +611,7 @@ function RecipientsStep({
               No leads available
             </p>
           ) : (
-            leads.map((lead) => (
+            leads.filter((lead: any) => lead.status !== "contacted").map((lead: Lead) => (
               <label
                 key={lead.id}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-background-elevated cursor-pointer">
@@ -567,13 +622,12 @@ function RecipientsStep({
                   className="rounded border-border"
                 />
                 <div className="flex items-center gap-2 flex-1">
-                  {lead.profilePictureUrl && (
-                    <img
-                      src={lead.profilePictureUrl}
-                      alt={lead.igUsername}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
+                  <Avatar
+                    src={lead.profilePictureUrl}
+                    alt={lead.igUsername}
+                    name={lead.name || lead.igUsername}
+                    size="sm"
+                  />
                   <div>
                     <p className="text-sm font-medium text-foreground">
                       {lead.name || lead.igUsername}
@@ -652,68 +706,9 @@ function PreviewStep({
 
   return (
     <div className="space-y-6">
-      <RepliesPreview recipients={recipients} />
+      <RepliesPreview recipients={recipients} campaign={campaign}/>
 
-      {/* Campaign Summary */}
-      <div className="p-4 rounded-lg bg-background-elevated border border-border">
-        <h3 className="text-sm font-medium text-foreground mb-3">
-          Campaign Summary
-        </h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-foreground-muted">Campaign Name</p>
-            <p className="font-medium text-foreground">
-              {campaign.name || "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-foreground-muted">Total Recipients</p>
-            <p className="font-medium text-foreground">
-              {campaign.contactIds.length + campaign.leadIds.length}
-            </p>
-          </div>
-          <div>
-            <p className="text-foreground-muted">Selected Accounts</p>
-            <p className="font-medium text-foreground">
-              {campaign.accountIds.length} account
-              {campaign.accountIds.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-          <div>
-            <p className="text-foreground-muted">Messages Per Day</p>
-            <p className="font-medium text-foreground">
-              {campaign.messagesPerDay} per account
-              {campaign.accountIds.length > 1 && (
-                <span className="text-foreground-muted ml-1">
-                  (Total: {campaign.messagesPerDay * campaign.accountIds.length}
-                  /day)
-                </span>
-              )}
-            </p>
-          </div>
-          <div>
-            <p className="text-foreground-muted">Time Range</p>
-            <p className="font-medium text-foreground">
-              {campaign.sendStartTime} - {campaign.sendEndTime} (
-              {campaign.timezone})
-            </p>
-          </div>
-          <div>
-            <p className="text-foreground-muted">Message Sequence</p>
-            <p className="font-medium text-foreground">
-              {campaign.messageSteps.length} message
-              {campaign.messageSteps.length !== 1 ? "s" : ""}
-              {campaign.messageSteps.length > 1 && (
-                <span className="text-foreground-muted ml-1">
-                  ({campaign.messageSteps.length - 1} follow-up
-                  {campaign.messageSteps.length - 1 !== 1 ? "s" : ""})
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+  </div>
   );
 }
 
